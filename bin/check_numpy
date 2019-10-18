@@ -1,0 +1,7 @@
+import sys
+try:
+    import numpy
+    sys.stdout.write('1')
+except ImportError:
+    sys.stdout.write('0')
+sys.stdout.flush()
