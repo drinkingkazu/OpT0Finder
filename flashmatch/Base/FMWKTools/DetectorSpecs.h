@@ -11,7 +11,7 @@ namespace flashmatch {
     DetectorSpecs(std::string filename="specs.cfg");
     ~DetectorSpecs(){}
     
-    static DetectorSpecs& GetME(std::string filename="specs.cfg")
+    static DetectorSpecs& GetME(std::string filename="detector_specs.cfg")
     {
       if(!_me) _me = new DetectorSpecs(filename);
       return *_me;

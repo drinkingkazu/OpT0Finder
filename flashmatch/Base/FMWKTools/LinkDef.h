@@ -9,6 +9,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ namespace flashmatch+;
+#pragma link C++ class flashmatch::DetectorSpecs+;
 #pragma link C++ namespace phot+;
 #pragma link C++ namespace sim+;
 #pragma link C++ class sim::PhotonVoxel+;

@@ -13,10 +13,11 @@ namespace flashmatch{
     if(filename.find("/") != 0)
       filename = std::string(getenv("FMATCH_DATADIR")) + "/" + filename;
 
-    auto p = CreatePSetFromFile(filename,"cfg");
+    auto cfg = CreatePSetFromFile(filename,"cfg");
+    auto const& p = cfg.get<flashmatch::PSet>("DetectorSpecs");
 
-    auto max_pt = p.get<std::vector<double> >("ActiveMax");
-    auto min_pt = p.get<std::vector<double> >("ActiveMin");
+    auto max_pt = p.get<std::vector<double> >("MaxPosition");
+    auto min_pt = p.get<std::vector<double> >("MinPosition");
 
     assert(max_pt.size() == 3);
     _xmax = max_pt[0];
@@ -37,6 +38,7 @@ namespace flashmatch{
       _xpos_v.push_back(pt[0]);
       _ypos_v.push_back(pt[1]);
       _zpos_v.push_back(pt[2]);
+      ch++;
     }
 
     _drift_velocity = p.get<double>("DriftVelocity");
