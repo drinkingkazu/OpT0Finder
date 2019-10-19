@@ -15,7 +15,7 @@
 #define OPT0FINDER_BASEALGORITHM_H
 
 #include "OpT0FinderTypes.h"
-#include "OpT0FinderFMWKInterface.h"
+#include "FMWKInterface.h"
 #include "LoggerFeature.h"
 #include <vector>
 namespace flashmatch {

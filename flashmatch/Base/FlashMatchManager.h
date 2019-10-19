@@ -15,7 +15,7 @@
 #define OPT0FINDER_FLASHMATCHMANAGER_H
 
 #include "LoggerFeature.h"
-#include "OpT0FinderFMWKInterface.h"
+#include "FMWKInterface.h"
 #include "BaseAlgorithm.h"
 #include "BaseTPCFilter.h"
 #include "BaseFlashFilter.h"
