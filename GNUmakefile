@@ -9,7 +9,7 @@ OSNAMEMODE      = $(OSNAME)
 
 include $(FMATCH_BASEDIR)/Makefile/Makefile.${OSNAME}
 
-SUBDIRS := Base/FMWKTools Base GeoAlgo Algorithms #DataFormat Processor CPPUtil
+SUBDIRS := Base/FMWKTools Base GeoAlgo Algorithms PyUtil #
 #ifeq ($(LARCV_NUMPY),1)
 #CORE_SUBDIRS += PyUtil
 #endif
