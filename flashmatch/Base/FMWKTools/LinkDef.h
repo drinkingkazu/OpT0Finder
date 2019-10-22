@@ -10,7 +10,11 @@
 #pragma link off all functions;
 
 #pragma link C++ namespace flashmatch+;
-#pragma link C++ class flashmatch::DetectorSpecs+;
+#pragma link C++ class flashmatch::PSet+;
+#pragma link C++ function flashmatch::PSet::get< string > (const string&)+;
+#pragma link C++ function flashmatch::ConfigFile2String(const string)+;
+#pragma link C++ function flashmatch::CreatePSetFromFile(const string)+;
+#pragma link C++ class flashmatch::ConfigManager+;
 #pragma link C++ namespace phot+;
 #pragma link C++ namespace sim+;
 #pragma link C++ class sim::PhotonVoxel+;

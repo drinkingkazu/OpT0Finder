@@ -1,1 +1,3 @@
-from ROOT import flashmatch, phot, sim
+from ROOT import flashmatch, phot, sim, geoalgo
+#force loading C functions in dict by instantiating a class
+c=flashmatch.PSet

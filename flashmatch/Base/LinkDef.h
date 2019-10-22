@@ -4,7 +4,7 @@
 // #pragma statement: order matters! Google it ;)
 //
 
-#ifdef __CINT__
+#ifdef __CLING__
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
@@ -22,6 +22,8 @@
 #pragma link C++ class std::vector<flashmatch::QPoint_t>+;
 #pragma link C++ class std::vector<flashmatch::QCluster_t>+;
 #pragma link C++ class std::vector<flashmatch::FlashMatch_t>+;
+#pragma link C++ class flashmatch::QClusterArray_t+;
+#pragma link C++ class flashmatch::FlashArray_t+;
 #pragma link C++ class flashmatch::FlashMatchManager+;
 #pragma link C++ class flashmatch::BaseAlgorithm+;
 #pragma link C++ class flashmatch::BaseProhibitAlgo+;

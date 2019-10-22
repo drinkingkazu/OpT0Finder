@@ -100,20 +100,6 @@ namespace flashmatch {
     this->set_verbosity((msg::Level_t)(mgr_cfg.get<unsigned int>("Verbosity")));
     _store_full = mgr_cfg.get<bool>("StoreFullResult");
 
-    auto const& detector_cfg = main_cfg.get<flashmatch::Config_t>("DetectorConfiguration");
-
-    auto const& pmt_pos_cfg = detector_cfg.get<flashmatch::Config_t>("PMTPosition");
-    auto const pmt_x_pos = pmt_pos_cfg.get<std::vector<double> >("X");
-    auto const pmt_y_pos = pmt_pos_cfg.get<std::vector<double> >("Y");
-    auto const pmt_z_pos = pmt_pos_cfg.get<std::vector<double> >("Z");
-
-    auto const& detector_boundary_cfg = detector_cfg.get<flashmatch::Config_t>("ActiveVolume");
-    auto const det_xrange = detector_boundary_cfg.get<std::vector<double> >("X");
-    auto const det_yrange = detector_boundary_cfg.get<std::vector<double> >("Y");
-    auto const det_zrange = detector_boundary_cfg.get<std::vector<double> >("Z");
-
-    auto const drift_velocity = detector_cfg.get<double>("DriftVelocity");
-
     auto const flash_filter_name = mgr_cfg.get<std::string>("FlashFilterAlgo","");
     auto const tpc_filter_name   = mgr_cfg.get<std::string>("TPCFilterAlgo","");
     auto const prohibit_name     = mgr_cfg.get<std::string>("ProhibitAlgo","");
@@ -131,13 +117,6 @@ namespace flashmatch {
       if(!name.empty()) AddCustomAlgo(CustomAlgoFactory::get().create(name,name));
     
     // checks
-    if (det_xrange.size() != 2 || det_yrange.size() != 2 || det_zrange.size() != 2)
-      throw OpT0FinderException("Detector volume range has wrong size!");
-
-    if (pmt_x_pos.size() != pmt_y_pos.size() ||
-        pmt_x_pos.size() != pmt_z_pos.size() )
-      throw OpT0FinderException("PMT position array length has a mismatch among x vs. y or x vs. z");
-
     if (_alg_match_prohibit)
       _alg_match_prohibit->Configure(main_cfg.get<flashmatch::Config_t>(_alg_match_prohibit->AlgorithmName()));
 

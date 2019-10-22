@@ -1,6 +1,6 @@
 #ifndef PHOTONLIBHYPOTHESIS_CXX
 #define PHOTONLIBHYPOTHESIS_CXX
-
+#include <cassert>
 #include "PhotonLibHypothesis.h"
 #include "flashmatch/Base/OpT0FinderException.h"
 #include "flashmatch/Base/FMWKInterface.h"
@@ -15,7 +15,9 @@ namespace flashmatch {
   void PhotonLibHypothesis::_Configure_(const Config_t &pset)
   {
     _global_qe = pset.get<double>("GlobalQE");
-    _qe_v      = pset.get<std::vector<double> >("CCVCorrection");
+    _qe_v.clear();
+    _qe_v = pset.get<std::vector<double> >("CCVCorrection",_qe_v);
+    if(_qe_v.empty()) _qe_v.resize(DetectorSpecs::GetME().NOpDets(),1.0);
     if(_qe_v.size() != DetectorSpecs::GetME().NOpDets()) {
       FLASH_CRITICAL() << "CCVCorrection factor array has size " << _qe_v.size()
 		       << " != number of opdet (" << DetectorSpecs::GetME().NOpDets() << ")!" << std::endl;
@@ -28,6 +30,8 @@ namespace flashmatch {
   {
     
     size_t n_pmt = DetectorSpecs::GetME().NOpDets();//n_pmt returns 0 now, needs to be fixed
+    if(flash.pe_v.empty()) flash.pe_v.resize(n_pmt);
+    assert(flash.pe_v.size() == n_pmt);
     
     for ( auto& v : flash.pe_v ) v = 0;
     
