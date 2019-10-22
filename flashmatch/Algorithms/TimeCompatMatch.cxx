@@ -29,6 +29,7 @@ namespace flashmatch {
     auto flash_time = flash.time;
 
     // get time of cluster by looking at the range of x-positions
+    // FIXME: 1036?
     double clus_x_min =  1036.; // cm
     double clus_x_max = -1036.;    // cm
     for (auto const& pt : clus){
@@ -37,10 +38,9 @@ namespace flashmatch {
     }
 
     // Earliest flash time => assume clus_x_max is @ detector X-max boundary
-    double xmax,ymax,zmax;
-    flashmatch::MaxPosition(xmax,ymax,zmax);
-    double clus_t_min = (clus_x_max - xmax) / flashmatch::DriftVelocity();
-    double clus_t_max = clus_x_min / flashmatch::DriftVelocity();
+    double xmax = DetectorSpecs::GetME().ActiveVolume().Max()[0];
+    double clus_t_min = (clus_x_max - xmax) / DetectorSpecs::GetME().DriftVelocity();
+    double clus_t_max = clus_x_min / DetectorSpecs::GetME().DriftVelocity();
 
     /*
     std::cout<< "Inspecting TPC object @ " << clus.time << std::endl;

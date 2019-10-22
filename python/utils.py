@@ -7,11 +7,17 @@ def dump_geo():
     '''
     s = flashmatch.DetectorSpecs.GetME()
     xyz_range = [float()] * 6
-    s.MaxPosition(xyz_range[0],xyz_range[2],xyz_range[4])
-    s.MinPosition(xyz_range[1],xyz_range[3],xyz_range[5])
+    bbox=s.ActiveVolume()
     print('Active Volume')
-    print('X:',xyz_range[0:2])
-    print('Y:',xyz_range[2:4])
-    print('Z:',xyz_range[4:6])
+    print('X:',bbox.Max()[0],bbox.Min()[0])
+    print('Y:',bbox.Max()[1],bbox.Min()[1])
+    print('Z:',bbox.Max()[2],bbox.Min()[2])
+
+    print('Visibility @ Center per PMT')
+    cx=(bbox.Max()[0]-bbox.Min()[0])/2. + bbox.Min()[0]
+    cy=(bbox.Max()[1]-bbox.Min()[1])/2. + bbox.Min()[1]
+    cz=(bbox.Max()[2]-bbox.Min()[2])/2. + bbox.Min()[2]
+    for opch in range(s.NOpDets()):
+        print('PMT',opch,'Visibility',s.GetVisibility(cx,cy,cz,opch))
     
 dump_geo()

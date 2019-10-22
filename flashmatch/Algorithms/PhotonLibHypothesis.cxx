@@ -16,14 +16,9 @@ namespace flashmatch {
   {
     _global_qe = pset.get<double>("GlobalQE");
     _qe_v      = pset.get<std::vector<double> >("CCVCorrection");
-    _libraryfile = pset.get<std::string>("LibraryFile","");
-    if (_libraryfile.empty())
-      fLibrarySet = false;
-    else
-      fLibrarySet = true;
-    if(_qe_v.size() != flashmatch::NOpDets()) {
+    if(_qe_v.size() != DetectorSpecs::GetME().NOpDets()) {
       FLASH_CRITICAL() << "CCVCorrection factor array has size " << _qe_v.size()
-		       << " != number of opdet (" << flashmatch::NOpDets() << ")!" << std::endl;
+		       << " != number of opdet (" << DetectorSpecs::GetME().NOpDets() << ")!" << std::endl;
       throw OpT0FinderException();
     }
   }
@@ -32,12 +27,7 @@ namespace flashmatch {
 					 Flash_t &flash) const
   {
     
-    size_t n_pmt = flashmatch::NOpDets();//n_pmt returns 0 now, needs to be fixed
-    const ::phot::PhotonVisibilityService*  pPhotonLib = NULL;
-    if ( fLibrarySet )
-      pPhotonLib = &(::phot::PhotonVisibilityService::GetME(_libraryfile));
-    else
-      pPhotonLib = &(::phot::PhotonVisibilityService::GetME());
+    size_t n_pmt = DetectorSpecs::GetME().NOpDets();//n_pmt returns 0 now, needs to be fixed
     
     for ( auto& v : flash.pe_v ) v = 0;
     
@@ -49,7 +39,7 @@ namespace flashmatch {
 	
         double q = pt.q;
 	
-        q *= pPhotonLib->GetVisibility( pt.x, pt.y, pt.z, ipmt) * _global_qe / _qe_v[ipmt];
+        q *= DetectorSpecs::GetME().GetVisibility( pt.x, pt.y, pt.z, ipmt) * _global_qe / _qe_v[ipmt];
         flash.pe_v[ipmt] += q;
 	//std::cout << "PMT : " << ipmt << " [x,y,z] -> [q] : [" << pt.x << ", " << pt.y << ", " << pt.z << "] -> [" << q << std::endl;
 	

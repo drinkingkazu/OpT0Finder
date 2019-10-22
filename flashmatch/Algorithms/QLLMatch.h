@@ -121,8 +121,7 @@ namespace flashmatch {
     double _onepmt_pesum_threshold;
     double _onepmt_pefrac_threshold;
 
-    double _vol_xmax, _vol_ymax, _vol_zmax;
-    double _vol_xmin, _vol_ymin, _vol_zmin;
+    double _vol_xmax, _vol_xmin;
     std::vector<double> _xpos_v, _ypos_v, _zpos_v;
     
   };

@@ -39,13 +39,19 @@ namespace flashmatch {
     _onepmt_pesum_threshold = pset.get<double>("OnePMTPESumThreshold");
     _onepmt_pefrac_threshold = pset.get<double>("OnePMTPEFracThreshold");
 
-    _xpos_v.resize(flashmatch::NOpDets(),0.);
-    _ypos_v.resize(flashmatch::NOpDets(),0.);
-    _zpos_v.resize(flashmatch::NOpDets(),0.);
-    for(size_t ch=0; ch<flashmatch::NOpDets(); ++ch)
-      flashmatch::PMTPosition(ch,_xpos_v[ch],_ypos_v[ch],_zpos_v[ch]);
-    flashmatch::MaxPosition(_vol_xmax,_vol_ymax,_vol_zmax);
-    flashmatch::MinPosition(_vol_xmin,_vol_ymin,_vol_zmin);
+    _xpos_v.resize(DetectorSpecs::GetME().NOpDets(),0.);
+    _ypos_v.resize(DetectorSpecs::GetME().NOpDets(),0.);
+    _zpos_v.resize(DetectorSpecs::GetME().NOpDets(),0.);
+    for(size_t ch=0; ch<DetectorSpecs::GetME().NOpDets(); ++ch) {
+      auto const& pmt_pos = DetectorSpecs::GetME().PMTPosition(ch);
+      _xpos_v[ch] = pmt_pos[0];
+      _ypos_v[ch] = pmt_pos[1];
+      _zpos_v[ch] = pmt_pos[2];
+    }
+    auto const& bbox = DetectorSpecs::GetME().ActiveVolume();
+    _vol_xmax = bbox.Max()[0];
+    _vol_xmax = bbox.Min()[0];
+      
   }
   
   FlashMatch_t QLLMatch::Match(const QCluster_t &pt_v, const Flash_t &flash) {
@@ -109,7 +115,7 @@ namespace flashmatch {
     }
 
     // Now see if Flash T0 can be consistent with an assumption MinX @ X=0.
-    double xdiff = fabs(_raw_xmin_pt.x - flash.time * flashmatch::DriftVelocity());
+    double xdiff = fabs(_raw_xmin_pt.x - flash.time * DetectorSpecs::GetME().DriftVelocity());
     if( xdiff > _onepmt_xdiff_threshold ) {
       //std::cout << "XDiffThreshold not met (xdiff=" << xdiff << ")" << std::endl;
       return res;
@@ -127,7 +133,7 @@ namespace flashmatch {
     // Compute TPC point
     res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = 0;
     double weight = 0;
-    for (size_t pmt_index = 0; pmt_index < flashmatch::NOpDets(); ++pmt_index) {
+    for (size_t pmt_index = 0; pmt_index < DetectorSpecs::GetME().NOpDets(); ++pmt_index) {
 
       res.tpc_point.y += _ypos_v.at(pmt_index) * _hypothesis.pe_v[pmt_index];
       res.tpc_point.z += _zpos_v.at(pmt_index) * _hypothesis.pe_v[pmt_index];
@@ -163,7 +169,7 @@ namespace flashmatch {
     
     double weight = 0;
     
-    for (size_t pmt_index = 0; pmt_index < flashmatch::NOpDets(); ++pmt_index) {
+    for (size_t pmt_index = 0; pmt_index < DetectorSpecs::GetME().NOpDets(); ++pmt_index) {
 
       res.tpc_point.y += _ypos_v.at(pmt_index) * _hypothesis.pe_v[pmt_index];
       res.tpc_point.z += _zpos_v.at(pmt_index) * _hypothesis.pe_v[pmt_index];
@@ -185,13 +191,13 @@ namespace flashmatch {
     res.score = 1. / _qll;
     
     // Compute X-weighting
-    double x0 = _raw_xmin_pt.x - flash.time * DriftVelocity();
+    double x0 = _raw_xmin_pt.x - flash.time * DetectorSpecs::GetME().DriftVelocity();
     if( fabs(_reco_x_offset - x0) > _recox_penalty_threshold )
       res.score *= 1. / (1. + fabs(_reco_x_offset - x0) - _recox_penalty_threshold);
     // Compute Z-weighting
     double z0 = 0;
     weight = 0;
-    for (size_t pmt_index = 0; pmt_index < flashmatch::NOpDets(); ++pmt_index) {
+    for (size_t pmt_index = 0; pmt_index < DetectorSpecs::GetME().NOpDets(); ++pmt_index) {
       z0 += _zpos_v.at(pmt_index) * flash.pe_v[pmt_index];
       weight += flash.pe_v[pmt_index];
     }
@@ -203,8 +209,8 @@ namespace flashmatch {
   }
   
   const Flash_t &QLLMatch::ChargeHypothesis(const double xoffset) {
-    if (_hypothesis.pe_v.empty()) _hypothesis.pe_v.resize(flashmatch::NOpDets(), 0.);
-    if (_hypothesis.pe_v.size() != flashmatch::NOpDets()) {
+    if (_hypothesis.pe_v.empty()) _hypothesis.pe_v.resize(DetectorSpecs::GetME().NOpDets(), 0.);
+    if (_hypothesis.pe_v.size() != DetectorSpecs::GetME().NOpDets()) {
       throw OpT0FinderException("Hypothesis vector length != PMT count");
     }
     
@@ -321,7 +327,7 @@ namespace flashmatch {
   double QLLMatch::CallMinuit(const QCluster_t &tpc, const Flash_t &pmt, const bool init_x0) {
     
     if (_measurement.pe_v.empty()) {
-      _measurement.pe_v.resize(flashmatch::NOpDets(), 0.);
+      _measurement.pe_v.resize(DetectorSpecs::GetME().NOpDets(), 0.);
     }
     if (_measurement.pe_v.size() != pmt.pe_v.size())
       throw OpT0FinderException("PMT dimension has changed!");
@@ -359,8 +365,8 @@ namespace flashmatch {
     
     double reco_x = 0.;
     if (!init_x0)
-      reco_x = (_vol_xmax - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2.;
-    double reco_x_err = (_vol_xmax - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2.;
+      reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
+    double reco_x_err = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
     double MinFval;
     int ierrflag, npari, nparx, istat;
     double arglist[4], Fmin, Fedm, Errdef;
@@ -371,8 +377,8 @@ namespace flashmatch {
     _minuit_ptr->mnexcm("SET STR", arglist, 1, ierrflag);
     
     _minuit_ptr->SetFCN(MIN_vtx_qll);
-    
-    _minuit_ptr->DefineParameter(0, "X", reco_x, reco_x_err, -1.0, _vol_xmax - (_raw_xmax_pt.x - _raw_xmin_pt.x) + 20.0 );
+    // FIXME "+10."?
+    _minuit_ptr->DefineParameter(0, "X", reco_x, reco_x_err, -1.0, (_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x) + 10.);
     
     _minuit_ptr->Command("SET NOW");
     

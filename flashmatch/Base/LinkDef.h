@@ -11,6 +11,7 @@
 
 #pragma link C++ namespace flashmatch;
 #pragma link C++ namespace flashmatch::msg;
+#pragma link C++ class flashmatch::DetectorSpecs+;
 #pragma link C++ class flashmatch::QPoint_t+;
 #pragma link C++ class flashmatch::QCluster_t+;
 #pragma link C++ class flashmatch::Flash_t+;

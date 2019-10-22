@@ -29,15 +29,15 @@ main_build: .depend pre_build $(DICT).o $(OBJECTS) $(FMATCH_LIBDIR)/$(ROOTMAP) i
 # default rule for making .o files from .cxx files
 $(PACKAGE_BUILDDIR)/%.o: %.cxx %.h
 	@echo '<< compiling' $< '>>'
-	@$(CXX) $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) -DFMATCH_NUMPY=$(FMATCH_NUMPY) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) -DFMATCH_NUMPY=$(FMATCH_NUMPY) -DUSING_LARSOFT=0 -c $< -o $@
 $(DICT).o: $(DICT).cxx
 	@echo '<< compiling' $(PACKAGE_NAME)Dict.cxx '>>'
-	@$(CXX) $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) -DUSING_LARSOFT=0 -c $< -o $@
 
 # root class dictionary
 $(DICT).cxx: $(HEADERS) LinkDef.h
 	@echo '<< generating dict >>'
-	@rootcling -f $(DICT).cxx -s $(FMATCH_LIBDIR)/$(SHLIB) -rml libflashmatch.so -rmf $(FMATCH_LIBDIR)/$(ROOTMAP) $(CINTFLAGS) -c $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) $(HEADERS) LinkDef.h
+	@rootcling -f $(DICT).cxx -s $(FMATCH_LIBDIR)/$(SHLIB) -rml libflashmatch.so -rmf $(FMATCH_LIBDIR)/$(ROOTMAP) $(CINTFLAGS) -c $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) $(HEADERS) -DUSING_LARSOFT=0 LinkDef.h
 
 # install headers
 install_header: $(OBJECTS) $(DICT).o
@@ -76,7 +76,7 @@ clearCINT:
 .depend: $(SOURCES) $(HEADERS)
 	@rm -f .depend
 	@echo '<< checking dependencies>>'
-	@$(CXX) -M $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) $(SOURCES) > .depend
+	@$(CXX) -M $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) -DUSING_LARSOFT=0 $(SOURCES) > .depend
 
 -include .depend
 

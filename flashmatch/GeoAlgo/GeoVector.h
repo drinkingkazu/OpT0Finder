@@ -60,7 +60,6 @@ namespace geoalgo {
     virtual ~Vector(){} ///< Default dtor
 
     void   Normalize(); ///< Normalize itself
-    
     bool   IsValid () const; ///< Check if point is valid    
     double SqLength() const; ///< Compute the squared length of the vector
     double Length  () const; ///< Compute the length of the vector
