@@ -72,15 +72,14 @@ namespace flashmatch {
 
     auto res1 = PESpectrumMatch(pt_v,flash,true);
     auto res2 = PESpectrumMatch(pt_v,flash,false);
-    /*
-    std::cout << "Using   mid-x-init: " << res1.tpc_point.x << " [cm] @ " << res1.score << std::endl;
-    std::cout << "Without mid-x-init: " << res2.tpc_point.x << " [cm] @ " << res2.score << std::endl;
-    */
+    FLASH_INFO() << "Using   mid-x-init: " << res1.tpc_point.x << " [cm] @ " << res1.score << std::endl;
+    FLASH_INFO() << "Without mid-x-init: " << res2.tpc_point.x << " [cm] @ " << res2.score << std::endl;
 
     auto res = (res1.score > res2.score ? res1 : res2);
 
     if(res.score < _onepmt_score_threshold) {
-
+      
+      FLASH_INFO() << "Resulting score below OnePMTScoreThreshold... calling OnePMTMatch" << std::endl;
       auto res_onepmt = OnePMTMatch(flash);
 
       if(res_onepmt.score >= 0.)
@@ -265,8 +264,8 @@ namespace flashmatch {
       
       if( H < 0 ) throw OpT0FinderException("Cannot have hypothesis value < 0!");
       
-      if(O < 0) {
-	if(H < _penalty_threshold_v[pmt_index]) continue;
+      if(!_penalty_value_v.empty() && O < 0) {
+	if(!_penalty_threshold_v.empty() && H < _penalty_threshold_v[pmt_index]) continue;
 	O = _penalty_value_v[pmt_index];
       }
       
@@ -294,11 +293,7 @@ namespace flashmatch {
 	throw OpT0FinderException();
       }
       
-      //result += std::fabs(  ) * measurement.pe_v[pmt_index];
-      
     }
-    
-    //std::cout << "PE hyp : " << PEtot_Hyp << "\tPE Obs : " << PEtot_Obs << "\t Chi^2 : " << result << std::endl;
     
     _current_chi2 /= nvalid_pmt;
     _current_llhd /= (nvalid_pmt +1);
@@ -332,11 +327,11 @@ namespace flashmatch {
     if (_measurement.pe_v.size() != pmt.pe_v.size())
       throw OpT0FinderException("PMT dimension has changed!");
     
-    if (_penalty_threshold_v.size() != pmt.pe_v.size()) {
+    if (!_penalty_threshold_v.empty() && _penalty_threshold_v.size() != pmt.pe_v.size()) {
       throw OpT0FinderException("Penalty threshold array has a different size than PMT array size!");
     }
     
-    if (_penalty_value_v.size() != pmt.pe_v.size()) {
+    if (!_penalty_value_v.empty() && _penalty_value_v.size() != pmt.pe_v.size()) {
       throw OpT0FinderException("Penalty value array has a different size than PMT array size!");
     }
     
