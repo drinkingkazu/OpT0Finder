@@ -7,8 +7,8 @@ if sys.version_info.major == 3:
         if not len([x for x in os.listdir('%s/%s' % (os.environ['FMATCH_BUILDDIR'],d)) if x.endswith('.o')]): continue
         dirs.append(d)
     libs=[x for x in subprocess.getoutput('flashmatch-config --libs').split() if not x.startswith('-lflashmatch')]
+    libs+= ['-L%s' % subprocess.getoutput('root-config --libdir').rstrip('\n'), '-lMinuit']
     libs+= subprocess.getoutput('root-config --libs').split()
-
 else:
     import commands
     dirs=[]
@@ -16,8 +16,8 @@ else:
         if not len([x for x in os.listdir('%s/%s' % (os.environ['FMATCH_BUILDDIR'],d)) if x.endswith('.o')]): continue
         dirs.append(d)
     libs=[x for x in commands.getoutput('flashmatch-config --libs').split() if not x.startswith('-lflashmatch')]
+    libs+= ['-L%s' % commands.getoutput('root-config --libdir').rstrip('\n'), '-lMinuit']
     libs+= commands.getoutput('root-config --libs').split()
-
 if 'PYTHON_LIB' in os.environ:
     libs+= [" -L{} -lpython{}.{}".format(os.environ["PYTHON_LIB"].strip(), 
         sys.version_info.major, 
