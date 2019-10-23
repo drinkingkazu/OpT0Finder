@@ -25,19 +25,18 @@ namespace flashmatch {
     }
   }
 
-  void PhotonLibHypothesis::FillEstimate(const QCluster_t& trk,
-					 Flash_t &flash) const
+  void PhotonLibHypothesis::FillEstimate(const QCluster_t& trk, Flash_t &flash) const
   {
 
     size_t n_pmt = DetectorSpecs::GetME().NOpDets();//n_pmt returns 0 now, needs to be fixed
     if(flash.pe_v.empty()) flash.pe_v.resize(n_pmt);
     if(flash.pe_err_v.empty()) flash.pe_err_v.resize(n_pmt);
 
-    assert(flash.pe_v.size() == n_pmt);
+    assert(flash.pe_v.size()     == n_pmt);
     assert(flash.pe_err_v.size() == n_pmt);
 
-    for ( auto& v : flash.pe_v ) v = 0;
-    for (auto & v: flash.pe_err_v ) v = 0;
+    for (auto& v : flash.pe_v     ) v = 0;
+    for (auto& v : flash.pe_err_v ) v = 0;
 
     for ( size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
 

@@ -8,7 +8,7 @@
 #include <cmath>
 #include <numeric>
 #include <TMath.h>
-
+#include <cassert>
 namespace flashmatch {
 
   static QLLMatchFactory __global_QLLMatchFactory__;
@@ -50,8 +50,10 @@ namespace flashmatch {
     }
     auto const& bbox = DetectorSpecs::GetME().ActiveVolume();
     _vol_xmax = bbox.Max()[0];
-    _vol_xmax = bbox.Min()[0];
-      
+    _vol_xmin = bbox.Min()[0];
+    FLASH_INFO() << bbox << std::endl;
+    FLASH_INFO() << _vol_xmin << " => " << _vol_xmax << std::endl;
+    //QLLMatch::GetME()->Configure(pset);
   }
   
   FlashMatch_t QLLMatch::Match(const QCluster_t &pt_v, const Flash_t &flash) {
@@ -60,8 +62,8 @@ namespace flashmatch {
     // Prepare TPC
     //
     _raw_trk.resize(pt_v.size());
-    double min_x = 1e9;
-    double max_x = 0;
+    double min_x =  1e20;
+    double max_x = -1e20;
     for (size_t i = 0; i < pt_v.size(); ++i) {
       auto const &pt = pt_v[i];
       _raw_trk[i] = pt;
@@ -72,8 +74,8 @@ namespace flashmatch {
 
     auto res1 = PESpectrumMatch(pt_v,flash,true);
     auto res2 = PESpectrumMatch(pt_v,flash,false);
-    FLASH_INFO() << "Using   mid-x-init: " << res1.tpc_point.x << " [cm] @ " << res1.score << std::endl;
-    FLASH_INFO() << "Without mid-x-init: " << res2.tpc_point.x << " [cm] @ " << res2.score << std::endl;
+    FLASH_INFO() << "Using   mid-x-init ... maximized 1/param Score=" << res1.score << " @ X=" << res1.tpc_point.x << " [cm]" << std::endl;
+    FLASH_INFO() << "Without mid-x-init ... maximized 1/param Score=" << res2.score << " @ X=" << res2.tpc_point.x << " [cm]" << std::endl;
 
     auto res = (res1.score > res2.score ? res1 : res2);
 
@@ -190,6 +192,7 @@ namespace flashmatch {
     res.score = 1. / _qll;
     
     // Compute X-weighting
+    /*
     double x0 = _raw_xmin_pt.x - flash.time * DetectorSpecs::GetME().DriftVelocity();
     if( fabs(_reco_x_offset - x0) > _recox_penalty_threshold )
       res.score *= 1. / (1. + fabs(_reco_x_offset - x0) - _recox_penalty_threshold);
@@ -203,7 +206,7 @@ namespace flashmatch {
     z0 /= weight;
     if( fabs(res.tpc_point.z - z0) > _recoz_penalty_threshold )
       res.score *= 1. / (1. + fabs(res.tpc_point.z - z0) - _recoz_penalty_threshold);
-    
+    */    
     return res;
   }
   
@@ -294,10 +297,10 @@ namespace flashmatch {
       }
       
     }
-    
+    //FLASH_DEBUG() <<"Mode " << (int)(_mode) << " Chi2 " << _current_chi2 << " LLHD " << _current_llhd << " nvalid " << nvalid_pmt << std::endl;
+
     _current_chi2 /= nvalid_pmt;
     _current_llhd /= (nvalid_pmt +1);
-    
     return (_mode == kChi2 ? _current_chi2 : _current_llhd);
   }
   
@@ -313,9 +316,9 @@ namespace flashmatch {
     auto const &hypothesis = QLLMatch::GetME()->ChargeHypothesis(*Xval);
     auto const &measurement = QLLMatch::GetME()->Measurement();
     Fval = QLLMatch::GetME()->QLL(hypothesis, measurement);
-    
+
     QLLMatch::GetME()->Record(Xval[0]);
-    
+
     return;
   }
   
@@ -351,29 +354,36 @@ namespace flashmatch {
     }
     
     for (size_t i = 0; i < pmt.pe_v.size(); ++i)  _measurement.pe_v[i] = pmt.pe_v[i] / max_pe;
-    
+    /*
     _minimizer_record_chi2_v.clear();
     _minimizer_record_llhd_v.clear();
     _minimizer_record_x_v.clear();
-    
+    */    
     if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
     
-    double reco_x = 0.;
+    double reco_x = _vol_xmin + 10;
     if (!init_x0)
       reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
-    double reco_x_err = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
+    double reco_x_err = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2.;
+    double xmin = _vol_xmin;
+    double xmax = (_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x) + _vol_xmin;
+
+    FLASH_INFO() << "Running Minuit x: " << xmin << " => " << xmax
+		 << " ... initial state x=" <<reco_x <<" x_err=" << reco_x_err << std::endl;
     double MinFval;
     int ierrflag, npari, nparx, istat;
     double arglist[4], Fmin, Fedm, Errdef;
     ierrflag = npari = nparx = istat = 0;
+
+    assert(this == QLLMatch::GetME());
     
     _minuit_ptr->SetPrintLevel(-1);
     arglist[0] = 2.0;
     _minuit_ptr->mnexcm("SET STR", arglist, 1, ierrflag);
     
     _minuit_ptr->SetFCN(MIN_vtx_qll);
-    // FIXME "+10."?
-    _minuit_ptr->DefineParameter(0, "X", reco_x, reco_x_err, -1.0, (_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x) + 10.);
+
+    _minuit_ptr->DefineParameter(0, "X", reco_x, reco_x_err, xmin, xmax);
     
     _minuit_ptr->Command("SET NOW");
     
@@ -397,7 +407,7 @@ namespace flashmatch {
     //arglist[2] = 0;       // Start point of scan
     //arglist[3] = 256;     // End point of scan
     //_minuit_ptr->mnexcm("scan", arglist,4, ierrflag);
-    
+
     MinFval = Fmin;
     double *grad = 0;
     int nPar = 1;

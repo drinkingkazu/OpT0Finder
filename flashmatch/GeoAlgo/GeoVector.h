@@ -83,6 +83,8 @@ namespace geoalgo {
     void RotateY(const double& theta);
     void RotateZ(const double& theta);
 
+    std::string dump() const;
+
   protected:
 
     /// Compute the squared-distance to another vector w/o dimension check
@@ -186,10 +188,7 @@ namespace geoalgo {
     /// Streamer
     #ifndef __CINT__
     friend std::ostream& operator << (std::ostream &o, ::geoalgo::Vector const& a)
-    { o << "Vector ("; for(auto const& v : a) o << v << " ";
-      o << ")";
-      return o;
-    }
+    { o << a.dump(); return o; }
     #endif
 
   };
