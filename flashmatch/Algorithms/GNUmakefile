@@ -14,6 +14,8 @@ HEADERS_DEST = flashmatch/$(PACKAGE_NAME)
 INCFLAGS  = -I.                       #Include itself
 INCFLAGS += $(shell flashmatch-config --includes)
 
+LDFLAGS += -L$(shell root-config --libdir) -lMinuit
+
 # platform-specific options
 OSNAME          = $(shell uname -s)
 HOST            = $(shell uname -n)
