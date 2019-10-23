@@ -94,6 +94,9 @@ class ToyMC:
         flash.idx  = idx
         flash.time = time
         self.pmt_algo.FillEstimate(qcluster, flash)
+        # very crude error addition (at least we should change it to poisson)
+        for idx,npe in enumerate(flash.pe_v):
+            flash.pe_err_v[idx]=np.sqrt(npe) # only good for high npe
         return flash
 
     def add(self, v):
@@ -110,8 +113,23 @@ class ToyMC:
 def demo(cfg_file, num_tracks):
     blob = ToyMC(cfg_file)
     track_v, tpc_v, pmt_v, time_v = gen_input(num_tracks, blob)
-    flash = blob.match(tpc_v, pmt_v)
-    print(len(flash))
+    match_v = blob.match(tpc_v, pmt_v)
+
+    # Print history of the last minimization if stored
+    qll=blob.mgr.GetAlgo(flashmatch.kFlashMatch)
+    hist_llhd = qll.HistoryLLHD()
+    hist_chi2 = qll.HistoryChi2()
+    hist_xpos = qll.HistoryX()
+    if hist_llhd.size():
+        print('QLLMatch history')
+        for i in range(hist_xpos.size()):
+            print('Step %d X %f Chi2 %f LLHD %f' % (i,hist_xpos[i],hist_chi2[i],hist_llhd[i]))
+
+    print('Number of match result',len(match_v))
+    for idx,match in enumerate(match_v):
+        print('Match ID',idx)
+        print('  TPC/PMT IDs %d/%d Score %f Min-X %f' % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x))
+
     tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
     pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
 
@@ -121,8 +139,13 @@ if __name__ == '__main__':
 
     cfg_file = os.path.join(os.environ['FMATCH_BASEDIR'],
                             'dat', 'flashmatch.cfg')
+    num_tracks = 1
     if len(sys.argv) > 1:
-        cfg_file = sys.argv[1]
+        for argv in sys.argv[1:]:
+            if argv.isdigit():
+                num_tracks = int(argv)
+            else:
+                cfg_file = sys.argv[1]
 
-    # Generate 10 random tracks
-    demo(cfg_file, 10)
+    # Generate some random tracks
+    demo(cfg_file, num_tracks)

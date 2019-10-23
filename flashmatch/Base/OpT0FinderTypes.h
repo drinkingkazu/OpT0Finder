@@ -5,6 +5,7 @@
 #include <numeric>
 #include "OpT0FinderConstants.h"
 #include <string>
+
 namespace flashmatch {
 
   /// Index used to identify Flash_t/QPointCollection_t uniquely in an event
@@ -87,6 +88,12 @@ namespace flashmatch {
     QCluster_t() : idx(kINVALID_ID), time(0) {}
     ~QCluster_t() {}
 
+    /// returns the sum of "q" from QPoint_t
+    double sum() const;
+
+    /// returns the total trajectory length
+    double length() const;
+
     inline QCluster_t& operator+=(const QCluster_t& rhs) {
       this->reserve(rhs.size() + this->size());
       for(auto const& pt : rhs) this->push_back(pt);
@@ -100,6 +107,8 @@ namespace flashmatch {
     }
 
   };
+  std::ostream& operator << (std::ostream& out, const flashmatch::QCluster_t& obj);
+    
   /// Collection of 3D point clusters (one use case is TPC object representation for track(s) and shower(s))
   typedef std::vector<flashmatch::QCluster_t> QClusterArray_t;
   /// Collection of Flash objects

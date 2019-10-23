@@ -71,10 +71,17 @@ namespace geoalgo {
     template <class T, class U> AABox(const T& min, const U& max)
       : AABox(Point_t(min), Point_t(max))
     {}
+
+    /// Streamer
+    #ifndef __CINT__
+    friend std::ostream& operator << (std::ostream &o, ::geoalgo::AABox const& a)
+    { o << "AABox Min " << a.Min() << " Max " << a.Max(); return o; }
+    #endif
     
   };
 
   typedef AABox AABox_t;
+
 }
 #endif
 /** @} */ // end of doxygen group 

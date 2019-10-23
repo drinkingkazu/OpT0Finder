@@ -43,9 +43,14 @@ namespace flashmatch {
     ~QLLMatch(){}
 
     /// Singleton shared instance getter
-    static QLLMatch* GetME()
+    static QLLMatch* GetME(std::string name="")
     {
-      if(!_me) _me = new QLLMatch("QLLMatch");
+      if(!_me) _me = new QLLMatch(name);
+      else if(!name.empty() && name != _me->AlgorithmName()) {
+	std::cerr << "QLLMatch instance must be uniquely named. Requested: "
+		  << name << " vs. Existing: " << _me->AlgorithmName() << std::endl;
+	throw std::exception();
+      }
       return _me;
     }
 
@@ -136,7 +141,7 @@ namespace flashmatch {
     /// dtor
     ~QLLMatchFactory() {}
     /// creation method
-    BaseFlashMatch* create(const std::string instance_name) { return QLLMatch::GetME(); }
+    BaseFlashMatch* create(const std::string instance_name) { return QLLMatch::GetME(instance_name); }
   };
   
 }

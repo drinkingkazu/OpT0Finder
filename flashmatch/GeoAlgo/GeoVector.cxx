@@ -182,6 +182,13 @@ namespace geoalgo {
     return;
   }
 
+  std::string Vector::dump() const {
+    
+    std::string msg="Pt (";
+    for(size_t i=0; i<this->size(); ++i)
+      msg += (std::to_string((*this)[i]) + ( (i+1) == this->size()  ? ")" : ","));
+    return msg;
+  }
 
 }
 

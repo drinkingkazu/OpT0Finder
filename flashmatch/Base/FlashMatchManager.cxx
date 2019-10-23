@@ -15,7 +15,8 @@
 namespace flashmatch {
 
   FlashMatchManager::FlashMatchManager(const std::string name)
-    : _alg_flash_filter(nullptr)
+    : LoggerFeature(name)
+    , _alg_flash_filter(nullptr)
     , _alg_tpc_filter(nullptr)
     , _alg_match_prohibit(nullptr)
     , _alg_flash_match(nullptr)

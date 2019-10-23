@@ -30,7 +30,8 @@ namespace flashmatch{
 	   max_pt[1] >= min_pt[1] &&
 	   max_pt[2] >= min_pt[2]);
     _bbox = geoalgo::AABox(min_pt[0],min_pt[1],min_pt[2],max_pt[0],max_pt[1],max_pt[2]);
-
+    std::cout<<_bbox.Min()[0]<<" "<<_bbox.Min()[1]<<" "<<_bbox.Min()[2]<<std::endl;
+    std::cout<<_bbox.Max()[0]<<" "<<_bbox.Max()[1]<<" "<<_bbox.Max()[2]<<std::endl;
     size_t ch=0;
     _pmt_v.clear();
     while(1) {
