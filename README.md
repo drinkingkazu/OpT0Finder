@@ -34,12 +34,17 @@ In OpT0Finder, TPC and PMT interactions are defined as `QCluster_t` and `Flash_t
 
 ## Big picture: how does `FlashMatchManager` work?
 `FlashMatchManager` works in 4 big steps:
-0. Configure parameters
-1. Register a list of `QCluster_t` = TPC interactions
-2. Register a list of `Flash_t` = PMT interactions
-3. Run flash matching
+
+1. Configure parameters
+2. Register a list of `QCluster_t` = TPC interactions
+3. Register a list of `Flash_t` = PMT interactions
+4. Run flash matching
+
 That's it! So, in principle, only 4 function calls.
 
 You can look at `dat/flashmatch.cfg` as an example. By now you should be able to understand the `FlashMatchmanager` configuration. If you are interested in learning about algorithms, you can find README and the source code under `flashmatch/Algorithms` directory. For `FlashMatchManager` itself, the code is under `flashmatch/Base` directory.
+
+## Learning more details?
+The framework base is defined under `flashmatch/Base` and the algorithms can be found `flashmatch/Algorithms`. Take a look at README there!
 
 
