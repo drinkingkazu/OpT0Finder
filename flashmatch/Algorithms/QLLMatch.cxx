@@ -51,9 +51,6 @@ namespace flashmatch {
     auto const& bbox = DetectorSpecs::GetME().ActiveVolume();
     _vol_xmax = bbox.Max()[0];
     _vol_xmin = bbox.Min()[0];
-    FLASH_INFO() << bbox << std::endl;
-    FLASH_INFO() << _vol_xmin << " => " << _vol_xmax << std::endl;
-    //QLLMatch::GetME()->Configure(pset);
   }
   
   FlashMatch_t QLLMatch::Match(const QCluster_t &pt_v, const Flash_t &flash) {
