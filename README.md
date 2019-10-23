@@ -1,4 +1,4 @@
-# OpT0Finder as a software
+# Software for Flash Matching
 ICARUS implementation of OpT0Finder. To get started, go to README under `flashmatch/Base`.
 
 ## Requirements
