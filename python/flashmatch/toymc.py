@@ -61,5 +61,10 @@ if __name__ == '__main__':
     if len(sys.argv)>1:
         cfg_file=sys.argv[1]
     
-    demo(cfg_file,10)
+    tpc_v,pmt_v = demo(cfg_file,10)
 
+    tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
+    pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
+
+    print(tpc_v[0])
+    print(pmt_v[0])

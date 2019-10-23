@@ -18,7 +18,82 @@ namespace flashmatch {
       once = true;
     }
   }
-  
+
+  PyObject* as_ndarray(const QCluster_t& traj) {
+    SetPyUtil();
+    std::vector<size_t> dims(2,0);
+    dims[0] = traj.size();
+    dims[1] = 4;
+    auto pyarray = numpy_array<double>(dims);
+
+    double **carray;
+    const int dtype = NPY_DOUBLE;
+    PyArray_Descr *descr = PyArray_DescrFromType(dtype);
+    npy_intp pydims[2];
+    if (PyArray_AsCArray(&pyarray, (void **)&carray, pydims, 2, descr) < 0) {
+      std::cerr<<"Failed to create 2D numpy array"<<std::endl;
+      throw std::exception();
+    }
+    assert(pydims[0] == ((int)(dims[0])) && pydims[1] == ((int)(dims[1])));
+
+    for(size_t idx=0; idx<dims[0]; ++idx) {
+      carray[idx][0] = traj[idx].x;
+      carray[idx][1] = traj[idx].y;
+      carray[idx][2] = traj[idx].z;
+      carray[idx][3] = traj[idx].q;
+    }
+    PyArray_Free(pyarray,  (void *)carray);
+    return pyarray;
+  }
+
+  PyObject* as_ndarray(const ::geoalgo::Trajectory& traj) {
+    SetPyUtil();
+    std::vector<size_t> dims(2,0);
+    dims[0] = traj.size();
+    dims[1] = 3;
+    auto pyarray = numpy_array<double>(dims);
+
+    double **carray;
+    const int dtype = NPY_DOUBLE;
+    PyArray_Descr *descr = PyArray_DescrFromType(dtype);
+    npy_intp pydims[2];
+    if (PyArray_AsCArray(&pyarray, (void **)&carray, pydims, 2, descr) < 0) {
+      std::cerr<<"Failed to create 2D numpy array"<<std::endl;
+      throw std::exception();
+    }
+    assert(pydims[0] == ((int)(dims[0])) && pydims[1] == ((int)(dims[1])));
+
+    for(size_t idx=0; idx<dims[0]; ++idx) {
+      carray[idx][0] = traj[idx][0];
+      carray[idx][1] = traj[idx][1];
+      carray[idx][2] = traj[idx][2];
+    }
+    PyArray_Free(pyarray,  (void *)carray);
+    return pyarray;
+  }
+
+  PyObject* as_ndarray(const Flash_t& flash) {
+    SetPyUtil();
+    std::vector<size_t> dims(1);
+    dims[0] = flash.pe_v.size();
+    auto pyarray = numpy_array<double>(dims);
+
+    double *carray;
+    const int dtype = NPY_DOUBLE;
+    PyArray_Descr *descr = PyArray_DescrFromType(dtype);
+    npy_intp pydims[1];
+    if (PyArray_AsCArray(&pyarray, (void **)&carray, pydims, 1, descr) < 0) {
+      std::cerr<<"Failed to create 2D numpy array"<<std::endl;
+      throw std::exception();
+    }
+    assert(pydims[0] == ((int)(dims[0])));
+
+    for(size_t idx=0; idx<dims[0]; ++idx)
+      carray[idx] = flash.pe_v[idx];
+    PyArray_Free(pyarray,  (void *)carray);
+    return pyarray;
+  }
+
   /*
     void copy_array(PyObject *arrayin, const std::vector<float> &cvec) {
     SetPyUtil();

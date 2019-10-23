@@ -9,10 +9,15 @@ typedef _object PyObject;
 //#include <numpy/ndarrayobject.h>
 #include "numpy/arrayobject.h"
 #include <vector>
-
+#include "flashmatch/Base/OpT0FinderTypes.h"
+#include "flashmatch/GeoAlgo/GeoTrajectory.h"
 namespace flashmatch {
   /// Utility function: call one-time-only numpy module initialization (you don't have to call)
   void SetPyUtil();
+
+  PyObject* as_ndarray(const QCluster_t& traj);
+  PyObject* as_ndarray(const Flash_t& traj);
+  PyObject* as_ndarray(const ::geoalgo::Trajectory& traj);
   
   /// convert vectors into np array
   template <class T>

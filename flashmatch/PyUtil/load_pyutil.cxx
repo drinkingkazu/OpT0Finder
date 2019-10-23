@@ -3,7 +3,7 @@
 
 #include "load_pyutil.h"
 
-namespace larcv{
+namespace flashmatch{
 
   load_pyutil::load_pyutil(){}
 
