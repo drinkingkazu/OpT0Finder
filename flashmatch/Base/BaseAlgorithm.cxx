@@ -6,7 +6,8 @@
 namespace flashmatch {
 
   BaseAlgorithm::BaseAlgorithm(const Algorithm_t type,const std::string name)
-    : _type(type)
+    : LoggerFeature(name)
+    , _type(type)
     , _name(name)
   {}
 
