@@ -2,17 +2,26 @@ import numpy as np
 from .points import scatter_points
 
 
-def plot_flash(toymc, flash):
+def plot_flash(toymc, flash, x=None):
     """
     Plot a flashmatch::Flash_t
     """
     nopch = toymc.det.NOpDets()
     pmt_positions = []
+    if x is not None and not isinstance(x, float):
+        raise Exception('x needs to be a float')
+
     for pmt in range(nopch):
         pmt_position = toymc.det.PMTPosition(pmt)
+        if x is not None and isinstance(x, float):
+            if not np.isclose(pmt_position[0], x):
+                continue
         pmt_positions.append(np.array([[pmt_position[0], pmt_position[1], pmt_position[2], flash[pmt]]]))
     pmt_positions = np.vstack(pmt_positions)
-    return scatter_points(pmt_positions[:, 0:3], color=pmt_positions[:, -1], dim=3, markersize=3)
+    if x is None:
+        return scatter_points(pmt_positions[:, 0:3], color=pmt_positions[:, -1], dim=3, markersize=3)
+    else:
+        return scatter_points(pmt_positions[:, [2, 1]], color=pmt_positions[:, -1], dim=2, markersize=15)
 
 
 def plot_qcluster(qcluster, npts=100):
