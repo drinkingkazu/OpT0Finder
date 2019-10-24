@@ -2,9 +2,7 @@ import sys
 import test_msg
 from test_msg import debug, info, error, warning
 
-print
-print '\033[93mExecuting a unit test for geoalgo Package\033[00m'
-print 
+print('\033[93mExecuting a unit test for geoalgo Package\033[00m')
 
 # message level: [0,1,2,3] = [debug,info,warning,error]
 MSG_LEVEL=1
