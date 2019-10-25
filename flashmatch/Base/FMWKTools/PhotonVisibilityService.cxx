@@ -11,7 +11,7 @@
 //  optical simulation and by track-light association algorithms.
 //
 //  Visibility is defined as the fraction of isotropically produced
-//  photons from a detector voxel which are expected to reach the 
+//  photons from a detector voxel which are expected to reach the
 //  OpDet in question.
 //
 //  This information is lookup up from a previousely generated
@@ -19,7 +19,7 @@
 //
 //  Note that it is important that the voxelization schemes match
 //  between the library and the service instance for sensible results.
-// 
+//
 //
 // Framework includes
 
@@ -29,11 +29,13 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
-//#include "messagefacility/MessageLogger/MessageLogger.h" 
+//#include "messagefacility/MessageLogger/MessageLogger.h"
 //#include "Geometry/Geometry.h"
 //#include "Geometry/CryostatGeo.h"
 //#include "Geometry/OpDetGeo.h"
+#include <chrono>
 
+using namespace std::chrono;
 namespace phot{
 
   PhotonVisibilityService* PhotonVisibilityService::_me = nullptr;
@@ -96,7 +98,7 @@ namespace phot{
 
     if(fTheLibrary == 0)
       LoadLibrary();
-    
+
     for(int iy=0; iy<fNy; ++iy) {
       for(int iz=0; iz<fNz; ++iz) {
 	int vox_id = iy*fNx + iz * (fNy + fNx);
@@ -116,7 +118,7 @@ namespace phot{
 
     if(fTheLibrary == 0)
       LoadLibrary();
-    
+
     for(int ix=0; ix<fNx; ++ix) {
       for(int iz=0; iz<fNz; ++iz) {
 	int vox_id = ix + iz * (fNy + fNx);
@@ -136,7 +138,7 @@ namespace phot{
 
     if(fTheLibrary == 0)
       LoadLibrary();
-    
+
     for(int ix=0; ix<fNx; ++ix) {
       for(int iy=0; iy<fNy; ++iy) {
 	int vox_id = ix + iy * fNx;
@@ -155,7 +157,7 @@ namespace phot{
   { assert(frac>=0. && frac <=1.); return fYmin + (fYmax - fYmin) * frac; }
   float PhotonVisibilityService::Fraction2AbsoluteZ(float frac) const
   { assert(frac>=0. && frac <=1.); return fZmin + (fZmax - fZmin) * frac; }
-  
+
   //--------------------------------------------------------------------
   void PhotonVisibilityService::LoadLibrary() const
   {
@@ -184,14 +186,14 @@ namespace phot{
 		    << std::endl;
 	  size_t NVoxels = GetVoxelDef().GetNVoxels();
 	  fTheLibrary->LoadLibraryFromFile(LibraryFileWithPath, NVoxels);
-	} 
+	}
       }
       else {
 	// building library, so creating an empty one
         //art::ServiceHandle<geo::Geometry> geom;
-	
+
         size_t NVoxels = GetVoxelDef().GetNVoxels();
-	std::cout << " Vis service running library build job.  Please ensure " 
+	std::cout << " Vis service running library build job.  Please ensure "
 		  << " job contains LightSource, LArG4, SimPhotonCounter"<<std::endl;
 	fTheLibrary->CreateEmptyLibrary(NVoxels, fNOpDetChannels);
       }
@@ -211,7 +213,7 @@ namespace phot{
 	fTheLibrary->StoreLibraryToFile(fLibraryFile);
       }
   }
-  
+
 
   //------------------------------------------------------
 
@@ -259,18 +261,18 @@ namespace phot{
     return geom->OpDetGeoFromOpDet(OpDet).CosThetaFromNormal(xyz);
   }
   */
-  
+
   //------------------------------------------------------
 
   float PhotonVisibilityService::GetVisibility(double * xyz, unsigned int OpChannel) const
   {
-    int VoxID = fVoxelDef.GetVoxelID(xyz);  
+    int VoxID = fVoxelDef.GetVoxelID(xyz);
     return GetLibraryEntry(VoxID, OpChannel);
   }
 
   float PhotonVisibilityService::GetVisibility(double x, double y, double z, unsigned int OpChannel) const
   {
-    int VoxID = fVoxelDef.GetVoxelID(x,y,z);  
+    int VoxID = fVoxelDef.GetVoxelID(x,y,z);
     return GetLibraryEntry(VoxID, OpChannel);
   }
 
@@ -281,19 +283,19 @@ namespace phot{
   {
     fCurrentVoxel = VoxID;
     fCurrentValue = N;
-    std::cout << " PVS notes production of " << N << " photons at Vox " << VoxID<<std::endl; 
+    std::cout << " PVS notes production of " << N << " photons at Vox " << VoxID<<std::endl;
   }
 
 
   //------------------------------------------------------
 
-  
+
   void PhotonVisibilityService::RetrieveLightProd(int& VoxID, double& N) const
   {
     N     = fCurrentValue;
     VoxID = fCurrentVoxel;
   }
-  
+
   //------------------------------------------------------
 
   void PhotonVisibilityService::SetLibraryEntry(int VoxID, int OpChannel, float N)
@@ -307,7 +309,7 @@ namespace phot{
 
   //------------------------------------------------------
 
-  
+
 
   const std::vector<float>* PhotonVisibilityService::GetLibraryEntries(int VoxID) const
   {
@@ -333,9 +335,8 @@ namespace phot{
   {
     if(fTheLibrary == 0)
       LoadLibrary();
-    
+
     return fTheLibrary->NOpChannels();
   }
   */
 } // namespace
-

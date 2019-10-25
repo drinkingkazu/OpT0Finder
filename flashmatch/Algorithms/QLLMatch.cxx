@@ -9,6 +9,9 @@
 #include <numeric>
 #include <TMath.h>
 #include <cassert>
+#include <chrono>
+
+using namespace std::chrono;
 namespace flashmatch {
 
   static QLLMatchFactory __global_QLLMatchFactory__;
@@ -212,6 +215,7 @@ namespace flashmatch {
   }
 
   const Flash_t &QLLMatch::ChargeHypothesis(const double xoffset) {
+    //auto start = high_resolution_clock::now();
     if (_hypothesis.pe_v.empty()) _hypothesis.pe_v.resize(DetectorSpecs::GetME().NOpDets(), 0.);
     if (_hypothesis.pe_v.size() != DetectorSpecs::GetME().NOpDets()) {
       throw OpT0FinderException("Hypothesis vector length != PMT count");
@@ -228,15 +232,27 @@ namespace flashmatch {
       _var_trk[pt_index].z = _raw_trk[pt_index].z;
       _var_trk[pt_index].q = _raw_trk[pt_index].q;
     }
+    //auto end = high_resolution_clock::now();
+    //auto duration = duration_cast<microseconds>(end - start);
+    //std::cout << "Duration ChargeHypothesis 1 = " << duration.count() << "us" << std::endl;
 
+
+    //start = high_resolution_clock::now();
     FillEstimate(_var_trk, _hypothesis);
+    //end = high_resolution_clock::now();
+    //duration = duration_cast<microseconds>(end - start);
+    //std::cout << "Duration ChargeHypothesis 2 = " << duration.count() << "us" << std::endl;
 
+    //start = high_resolution_clock::now();
     if (_normalize) {
       double qsum = std::accumulate(std::begin(_hypothesis.pe_v),
 				    std::end(_hypothesis.pe_v),
 				    0.0);
       for (auto &v : _hypothesis.pe_v) v /= qsum;
     }
+    //end = high_resolution_clock::now();
+    //duration = duration_cast<microseconds>(end - start);
+    //std::cout << "Duration ChargeHypothesis 3 = " << duration.count() << "us" << std::endl;
 
     return _hypothesis;
   }
@@ -297,8 +313,10 @@ namespace flashmatch {
 	double arg = TMath::Poisson(O,H);
 	if(arg > 0. && !std::isnan(arg))
 	  _current_llhd -= std::log10(arg);
-	else
+	else {
+    //std::cout << "else " << O << " " << H << " " << arg << std::endl;
 	  _current_llhd = 1.e6;
+  }
 	if(std::isinf(_current_llhd)) {
     _current_llhd = 1.e6;
   }
@@ -329,9 +347,24 @@ namespace flashmatch {
     //std::cout << "minuit offset : " << Fval << std::endl;
     //std::cout << "minuit Xval?? : " << *Xval << std::endl;
 
+    auto start = high_resolution_clock::now();
     auto const &hypothesis = QLLMatch::GetME()->ChargeHypothesis(*Xval);
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(end - start);
+    //std::cout << "Duration ChargeHypothesis = " << duration.count() << "us" << std::endl;
+
+    start = high_resolution_clock::now();
     auto const &measurement = QLLMatch::GetME()->Measurement();
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start);
+    //std::cout << "Duration Measurement = " << duration.count() << "us" << std::endl;
+
+    start = high_resolution_clock::now();
     Fval = QLLMatch::GetME()->QLL(hypothesis, measurement);
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start);
+    //std::cout << "Duration QLL = " << duration.count() << "us" << std::endl;
+
 
     QLLMatch::GetME()->Record(Xval[0]);
 
@@ -370,11 +403,11 @@ namespace flashmatch {
     }
 
     for (size_t i = 0; i < pmt.pe_v.size(); ++i)  _measurement.pe_v[i] = pmt.pe_v[i] / max_pe;
-    /*
+
     _minimizer_record_chi2_v.clear();
     _minimizer_record_llhd_v.clear();
     _minimizer_record_x_v.clear();
-    */
+
     if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
 
     double reco_x = _vol_xmin + 10;

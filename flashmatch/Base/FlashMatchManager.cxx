@@ -12,6 +12,9 @@
 #include "FlashHypothesisFactory.h"
 #include "FlashProhibitFactory.h"
 #include "CustomAlgoFactory.h"
+#include <chrono>
+
+using namespace std::chrono;
 namespace flashmatch {
 
   FlashMatchManager::FlashMatchManager(const std::string name)
@@ -85,8 +88,8 @@ namespace flashmatch {
       }
     _custom_alg_m[alg->AlgorithmName()] = alg;
   }
-  
-  void FlashMatchManager::Configure(const Config_t& main_cfg) 
+
+  void FlashMatchManager::Configure(const Config_t& main_cfg)
   {
     /*
     ::fcllite::ConfigManager cfg_mgr("FlashMatchManager");
@@ -116,7 +119,7 @@ namespace flashmatch {
     if(!match_name.empty()       ) _alg_flash_match      = FlashMatchFactory::get().create(match_name,match_name);
     for(auto const& name : custom_algo_v)
       if(!name.empty()) AddCustomAlgo(CustomAlgoFactory::get().create(name,name));
-    
+
     // checks
     if (_alg_match_prohibit)
       _alg_match_prohibit->Configure(main_cfg.get<flashmatch::Config_t>(_alg_match_prohibit->AlgorithmName()));
@@ -198,7 +201,7 @@ namespace flashmatch {
     if(!obj.Valid()) throw OpT0FinderException("Invalid Flash_t object cannot be registered!");
     _flash_v.emplace_back(std::move(obj));
   }
-  
+
   // CORE FUNCTION
   std::vector<FlashMatch_t> FlashMatchManager::Match()
   {
@@ -209,10 +212,10 @@ namespace flashmatch {
       _res_tpc_flash_v.resize(_tpc_object_v.size(),std::vector<flashmatch::FlashMatch_t>(_flash_v.size()));
       _res_flash_tpc_v.resize(_flash_v.size(),std::vector<flashmatch::FlashMatch_t>(_tpc_object_v.size()));
     }
-    
+
     // Create also a result container
     std::vector<FlashMatch_t> result;
-    
+
     if (!_alg_flash_match)
       throw OpT0FinderException("Flash matching algorithm is reuqired! (not attached)");
     if (!_alg_flash_hypothesis)
@@ -262,7 +265,7 @@ namespace flashmatch {
     for (size_t tpc_index = 0; tpc_index < tpc_index_v.size(); ++tpc_index) {
       // Loop over flash list
       for (auto const& flash_index : flash_index_v) {
-
+        FLASH_INFO() << "Flash index " << flash_index << std::endl;
         auto const& tpc   = _tpc_object_v[tpc_index_v[tpc_index]]; // Retrieve TPC object
         auto const& flash = _flash_v[flash_index];    // Retrieve flash
 
@@ -275,8 +278,11 @@ namespace flashmatch {
           if (compat == false)
             continue;
         }
-
+        auto start = high_resolution_clock::now();
         auto res = _alg_flash_match->Match( tpc, flash ); // Run matching
+        auto end = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end - start);
+        std::cout << "Duration = " << duration.count() << "ms" << std::endl;
 
         // ignore this match if the score is <= 0
         if (res.score <= 0) continue;
@@ -327,7 +333,7 @@ namespace flashmatch {
       FLASH_INFO () << "Concrete Match: " << " TPC=" << tpc_index << " Flash=" << flash_index
 		    << " Score=" << match_info.score
 		    << std::endl;
-      
+
       // Register to a list of a "used" flash and tpc info
       tpc_used.insert(tpc_index);
       flash_used.insert(flash_index);
@@ -342,7 +348,7 @@ namespace flashmatch {
   }
 
   void FlashMatchManager::PrintConfig() {
-    
+
     std::cout << "---- FLASH MATCH MANAGER PRINTING CONFIG     ----" << std::endl
 	      << "_allow_reuse_flash = " << _allow_reuse_flash << std::endl
 	      << "_name = " << _name << std::endl

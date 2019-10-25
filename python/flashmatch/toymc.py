@@ -2,6 +2,8 @@ import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys
 
+np.random.seed(0)
+
 
 def generate_random_point(det):
     """

@@ -4,6 +4,9 @@
 #include "PhotonLibHypothesis.h"
 #include "flashmatch/Base/OpT0FinderException.h"
 #include "flashmatch/Base/FMWKInterface.h"
+#include <chrono>
+
+using namespace std::chrono;
 namespace flashmatch {
 
   static PhotonLibHypothesisFactory __global_PhotonLibHypothesisFactory__;
@@ -27,7 +30,6 @@ namespace flashmatch {
 
   void PhotonLibHypothesis::FillEstimate(const QCluster_t& trk, Flash_t &flash) const
   {
-
     size_t n_pmt = DetectorSpecs::GetME().NOpDets();//n_pmt returns 0 now, needs to be fixed
     if(flash.pe_v.empty()) flash.pe_v.resize(n_pmt);
     if(flash.pe_err_v.empty()) flash.pe_err_v.resize(n_pmt);
@@ -37,22 +39,21 @@ namespace flashmatch {
 
     for (auto& v : flash.pe_v     ) v = 0;
     for (auto& v : flash.pe_err_v ) v = 0;
+    //std::cout << n_pmt << " " << trk.size() << std::endl;
+    auto det = DetectorSpecs::GetME();
 
+    //start = high_resolution_clock::now();
     for ( size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
 
       for ( size_t ipt = 0; ipt < trk.size(); ++ipt) {
 
         auto const& pt = trk[ipt];
-
-        double q = pt.q;
-
-        q *= DetectorSpecs::GetME().GetVisibility( pt.x, pt.y, pt.z, ipmt) * _global_qe / _qe_v[ipmt];
-        flash.pe_v[ipmt] += q;
+        flash.pe_v[ipmt] += pt.q * det.GetVisibility( pt.x, pt.y, pt.z, ipmt);
 	//std::cout << "PMT : " << ipmt << " [x,y,z] -> [q] : [" << pt.x << ", " << pt.y << ", " << pt.z << "] -> [" << q << std::endl;
 
       }
+      flash.pe_v[ipmt] *= _global_qe / _qe_v[ipmt];
     }
-
     return;
   }
 }
