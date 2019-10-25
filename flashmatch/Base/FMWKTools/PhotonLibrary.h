@@ -23,7 +23,8 @@ namespace phot{
     void   SetCount(size_t Voxel, size_t OpChannel, float Count);
     
     const std::vector<float>* GetCounts(size_t Voxel) const;
-
+    inline const std::vector<std::vector<float> >& GetData() const
+    { return fLookupTable; }
     
     void StoreLibraryToFile(std::string LibraryFile);
     void LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels);

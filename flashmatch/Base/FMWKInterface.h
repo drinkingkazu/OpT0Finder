@@ -7,6 +7,7 @@
 
 #if USING_LARSOFT == 0
 #include "FMWKTools/ConfigManager.h"
+#include "FMWKTools/PhotonVoxels.h"
 namespace flashmatch {
   /// Configuration object
   using Config_t = flashmatch::PSet;
@@ -48,11 +49,18 @@ namespace flashmatch {
     /// Visibility
     float GetVisibility(double x, double y, double z, unsigned int opch) const;
 
+    /// Photon Library data access FIXME
+    const std::vector<std::vector<float > >& GetPhotonLibraryData() const;
+
+    /// Voxel definition
+    inline const sim::PhotonVoxelDef& GetVoxelDef() const { return _voxel_def; }
+
   private:
     static DetectorSpecs* _me;
     std::vector<geoalgo::Point_t> _pmt_v;
     geoalgo::AABox _bbox;
     double _drift_velocity;
+    sim::PhotonVoxelDef _voxel_def;
   };
 
 }

@@ -16,6 +16,7 @@
 //#include "art/Framework/Services/Registry/ServiceMacros.h"
 #include "PhotonLibrary.h"
 #include "PhotonVoxels.h"
+#include <cassert>
 
 ///General LArSoft Utilities
 namespace phot{
@@ -35,6 +36,7 @@ namespace phot{
     //double SolidAngleFactor(                double* xyz, unsigned int OpDet );
     float GetVisibility(double* xyz, unsigned int OpChannel ) const;
     float GetVisibility(double x, double y, double z, unsigned int OpChannel ) const;
+
     std::vector<std::vector<float> > GetVisibilityXY(double z) const;
     std::vector<std::vector<float> > GetVisibilityYZ(double x) const;
     std::vector<std::vector<float> > GetVisibilityZX(double y) const;
@@ -55,6 +57,9 @@ namespace phot{
     inline size_t GetNOpChannels() const { return fNOpDetChannels; }
 
     const std::vector<float>* GetAllVisibilities( double* xyz ) const;
+
+    inline const std::vector<std::vector<float> >& GetLibraryData() const
+    { if(!fTheLibrary) LoadLibrary(); return fTheLibrary->GetData(); }
     
     void LoadLibrary() const;
     void StoreLibrary();
