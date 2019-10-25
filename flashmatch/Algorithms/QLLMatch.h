@@ -2,7 +2,7 @@
  * \file QLLMatch.h
  *
  * \ingroup Algorithms
- * 
+ *
  * \brief Class def header for a class QLLMatch
  *
  * @author kazuhiro
@@ -33,12 +33,12 @@ namespace flashmatch {
   private:
     /// Valid ctor hidden (singleton)
     QLLMatch(const std::string);
-    
+
   public:
-    
+
     /// Default ctor throws exception (singleton)
     QLLMatch();
-    
+
     /// Default destructor
     ~QLLMatch(){}
 
@@ -83,7 +83,7 @@ namespace flashmatch {
   protected:
 
     void _Configure_(const Config_t &pset);
-    
+
   private:
 
     FlashMatch_t PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0);
@@ -91,13 +91,15 @@ namespace flashmatch {
     FlashMatch_t OnePMTMatch(const Flash_t &flash);
 
     static QLLMatch* _me;
-    
+
     QLLMode_t _mode;   ///< Minimizer mode
     bool _record;      ///< Boolean switch to record minimizer history
     double _normalize; ///< Noramalize hypothesis PE spectrum
 
     std::vector<double>  _penalty_threshold_v;
     std::vector<double>  _penalty_value_v;
+    double _pe_hypothesis_threshold;
+    double _pe_observation_threshold;
 
     flashmatch::QCluster_t _raw_trk;
     QPoint_t _raw_xmin_pt;
@@ -117,6 +119,7 @@ namespace flashmatch {
     double _qll;               ///< Minimizer return value
 
     TMinuit* _minuit_ptr;
+    double _migrad_tolerance;
 
     double _recox_penalty_threshold;
     double _recoz_penalty_threshold;
@@ -128,7 +131,7 @@ namespace flashmatch {
 
     double _vol_xmax, _vol_xmin;
     std::vector<double> _xpos_v, _ypos_v, _zpos_v;
-    
+
   };
 
   /**
@@ -143,9 +146,8 @@ namespace flashmatch {
     /// creation method
     BaseFlashMatch* create(const std::string instance_name) { return QLLMatch::GetME(instance_name); }
   };
-  
+
 }
 
 #endif
-/** @} */ // end of doxygen group 
-
+/** @} */ // end of doxygen group

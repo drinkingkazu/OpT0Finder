@@ -44,10 +44,16 @@ namespace flashmatch{
     }
 
     _drift_velocity = p.get<double>("DriftVelocity");
+
+    _voxel_def = phot::PhotonVisibilityService::GetME().GetVoxelDef();
+
   }
 
   float DetectorSpecs::GetVisibility(double x, double y, double z, unsigned int opch) const
   { return phot::PhotonVisibilityService::GetME().GetVisibility(x,y,z,opch); }
+
+  const std::vector<std::vector<float > >& DetectorSpecs::GetPhotonLibraryData() const
+  { return phot::PhotonVisibilityService::GetME().GetLibraryData(); }
 
 #else
   DetectorSpecs::DetectorSpecs(std::string filename)

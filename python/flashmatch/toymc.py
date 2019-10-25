@@ -2,6 +2,8 @@ import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys
 
+np.random.seed(0)
+
 
 def generate_random_point(det):
     """
@@ -122,6 +124,9 @@ def demo(cfg_file, num_tracks):
     hist_xpos = qll.HistoryX()
     if hist_llhd.size():
         print('QLLMatch history')
+        np.savetxt('hist_llhd.csv', np.array(hist_llhd), delimiter=',')
+        np.savetxt('hist_chi2.csv', np.array(hist_chi2), delimiter=',')
+        np.savetxt('hist_xpos.csv', np.array(hist_xpos), delimiter=',')
         for i in range(hist_xpos.size()):
             print('Step %d X %f Chi2 %f LLHD %f' % (i,hist_xpos[i],hist_chi2[i],hist_llhd[i]))
 
