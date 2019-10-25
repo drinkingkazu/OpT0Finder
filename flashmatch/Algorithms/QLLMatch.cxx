@@ -154,7 +154,8 @@ namespace flashmatch {
 
     // Use MinX point YZ distance to the max PMT and X0 diff as weight
     res.score = 1.;
-    res.score *= 1. / xdiff;
+    // FIXME For now we do not have time distribution, so ignore this weighting
+    //res.score *= 1. / xdiff;
     res.score *= 1. / (sqrt(pow(_raw_xmin_pt.y - _ypos_v.at(maxpmt),2) + pow(_raw_xmin_pt.z - _zpos_v.at(maxpmt),2)));
 
     return res;

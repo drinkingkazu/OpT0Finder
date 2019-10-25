@@ -7,7 +7,7 @@
 #include <chrono>
 
 #include <omp.h>
-#define NUM_THREADS 4
+#define NUM_THREADS 1
 
 using namespace std::chrono;
 namespace flashmatch {
@@ -47,7 +47,7 @@ namespace flashmatch {
     auto det = DetectorSpecs::GetME();
 
     auto const& lib_data = DetectorSpecs::GetME().GetPhotonLibraryData();
-    
+
     //start = high_resolution_clock::now();
     #pragma omp parallel
     {
@@ -58,12 +58,18 @@ namespace flashmatch {
       if(thread_id+1 == num_threads) num_pts += (trk.size() % num_threads);
 
       auto const& vox_def = DetectorSpecs::GetME().GetVoxelDef();
-      
+      // auto s = vox_def.GetVoxelSize();
+      // auto s1 = vox_def.GetRegionLowerCorner();
+      // auto s2 = vox_def.GetRegionUpperCorner();
+      // std::cout << s[0] << " " << s[1] << " " << s[2] << std::endl;
+      // std::cout << s1[0] << " " << s2[1] << " " << s1[2] << std::endl;
+      // std::cout << s2[0] << " " << s2[1] << " " << s2[2] << std::endl;
       std::vector<double> local_pe_v(n_pmt,0);
       int vox_id;
       for( size_t ipt = start_pt; ipt < start_pt + num_pts; ++ipt) {
 	auto const& pt = trk[ipt];
 	vox_id = vox_def.GetVoxelID(pt.x,pt.y,pt.z);
+  if (vox_id < 0) continue;
 	auto const& vis_pmt = lib_data[vox_id];
 	for ( size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
 	  local_pe_v[ipmt] += pt.q * vis_pmt[ipmt];
@@ -73,7 +79,7 @@ namespace flashmatch {
       for(size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
 	flash.pe_v[ipmt] += local_pe_v[ipmt] * _global_qe / _qe_v[ipmt];
       }
-	
+
     }
     return;
   }

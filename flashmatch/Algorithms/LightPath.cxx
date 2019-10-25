@@ -3,6 +3,7 @@
 
 #include "LightPath.h"
 #include "flashmatch/GeoAlgo/GeoTrajectory.h"
+
 namespace flashmatch {
 
   static LightPathFactory __global_LightPathFactory__;
@@ -21,15 +22,29 @@ namespace flashmatch {
     _light_yield  = pset.get< double > ( "LightYield"  );
     _qe           = pset.get< double > ( "QE"          );
     _dEdxMIP      = pset.get< double > ( "MIPdEdx"     );
+    _sigma_dedx   = pset.get< double > ( "SigmadEdx", 0);
+    _trandom      = new TRandom();
+  }
+
+  double LightPath::GenerateLightYield(double dedx) const {
+    // Generate smeared light yield using Poisson distribution
+    double smeared_light_yield = _trandom->PoissonD(_light_yield);
+    double smeared_dedx = dedx;
+    if (_sigma_dedx > 0) {
+      smeared_dedx = _trandom->Gaus(dedx, _sigma_dedx);
+    }
+    // std::cout << smeared_light_yield << " " << _light_yield << std::endl;
+    // std::cout << smeared_dedx << " " << dedx << std::endl;
+    return smeared_dedx * smeared_light_yield;
   }
 
   void LightPath::QCluster(const ::geoalgo::Vector& pt_1,
                            const ::geoalgo::Vector& pt_2,
                            QCluster_t& Q_cluster,
-			   double dedx) const {
+                           double dedx) const {
 
     if(dedx < 0) dedx = _dEdxMIP;
-    
+
     double dist = pt_1.Dist(pt_2);
     QPoint_t q_pt;
     FLASH_INFO() << "Filling points between (" << pt_1[0] << "," << pt_1[1] << "," << pt_1[2] << ")"
@@ -39,7 +54,10 @@ namespace flashmatch {
       q_pt.x = mid_pt[0];
       q_pt.y = mid_pt[1];
       q_pt.z = mid_pt[2];
-      q_pt.q = dedx * _light_yield * dist * _qe;
+
+      double smeared_factor = LightPath::GenerateLightYield(dedx);
+
+      q_pt.q = smeared_factor * dist * _qe;
       FLASH_DEBUG() << "Smaller than gap threshold (" << _gap << ")" << std::endl
 		   << "Traj pt (" << q_pt.x << "," << q_pt.y << "," << q_pt.z << ") q=" << q_pt.q << std::endl;
       Q_cluster.emplace_back(q_pt);
@@ -58,7 +76,8 @@ namespace flashmatch {
         q_pt.x = mid_pt[0] ;
         q_pt.y = mid_pt[1];
         q_pt.z = mid_pt[2];
-        q_pt.q = _gap * dedx * _light_yield * _qe;
+        double smeared_factor = LightPath::GenerateLightYield(dedx);
+        q_pt.q = _gap * smeared_factor * _qe;
 	FLASH_DEBUG() << "Traj pt (" << q_pt.x << "," << q_pt.y << "," << q_pt.z << ") q=" << q_pt.q << std::endl;
         Q_cluster.emplace_back(q_pt);
       }
@@ -68,7 +87,8 @@ namespace flashmatch {
         q_pt.x = mid_pt[0] ;
         q_pt.y = mid_pt[1];
         q_pt.z = mid_pt[2];
-        q_pt.q = weight * dedx * _light_yield * _qe;
+        double smeared_factor = LightPath::GenerateLightYield(dedx);
+        q_pt.q = weight * smeared_factor * _qe;
 	FLASH_DEBUG() << "Traj pt (" << q_pt.x << "," << q_pt.y << "," << q_pt.z << ") q=" << q_pt.q << std::endl;
         Q_cluster.emplace_back(q_pt);
       }//Last segment less than gap
