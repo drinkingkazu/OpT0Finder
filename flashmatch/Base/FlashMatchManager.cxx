@@ -282,7 +282,7 @@ namespace flashmatch {
         auto res = _alg_flash_match->Match( tpc, flash ); // Run matching
         auto end = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end - start);
-        std::cout << "Duration = " << duration.count() << "ms" << std::endl;
+        FLASH_INFO() << "Match duration = " << duration.count() << "ms" << std::endl;
 
         // ignore this match if the score is <= 0
         if (res.score <= 0) continue;

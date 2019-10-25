@@ -347,24 +347,23 @@ namespace flashmatch {
     //std::cout << "minuit offset : " << Fval << std::endl;
     //std::cout << "minuit Xval?? : " << *Xval << std::endl;
 
-    auto start = high_resolution_clock::now();
+    //auto start = high_resolution_clock::now();
     auto const &hypothesis = QLLMatch::GetME()->ChargeHypothesis(*Xval);
-    auto end = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(end - start);
+    //auto end = high_resolution_clock::now();
+    //auto duration = duration_cast<microseconds>(end - start);
     //std::cout << "Duration ChargeHypothesis = " << duration.count() << "us" << std::endl;
 
-    start = high_resolution_clock::now();
+    //start = high_resolution_clock::now();
     auto const &measurement = QLLMatch::GetME()->Measurement();
-    end = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(end - start);
+    //end = high_resolution_clock::now();
+    //duration = duration_cast<microseconds>(end - start);
     //std::cout << "Duration Measurement = " << duration.count() << "us" << std::endl;
 
-    start = high_resolution_clock::now();
+    //start = high_resolution_clock::now();
     Fval = QLLMatch::GetME()->QLL(hypothesis, measurement);
-    end = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(end - start);
+    //end = high_resolution_clock::now();
+    //duration = duration_cast<microseconds>(end - start);
     //std::cout << "Duration QLL = " << duration.count() << "us" << std::endl;
-
 
     QLLMatch::GetME()->Record(Xval[0]);
 

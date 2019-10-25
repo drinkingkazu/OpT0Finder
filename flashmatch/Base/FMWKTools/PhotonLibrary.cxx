@@ -157,7 +157,7 @@ namespace phot{
         fLookupTable[Voxel].resize(fNOpChannels, 0);
 
       // Set the visibility at this optical channel
-      fLookupTable[Voxel].at(OpChannel) = Visibility;
+      fLookupTable[Voxel][OpChannel] = Visibility;
     }
 
     // Go through the table and fill in any missing 0's
