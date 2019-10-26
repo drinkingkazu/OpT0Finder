@@ -281,8 +281,8 @@ namespace flashmatch {
         auto start = high_resolution_clock::now();
         auto res = _alg_flash_match->Match( tpc, flash ); // Run matching
         auto end = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(end - start);
-        FLASH_INFO() << "Match duration = " << duration.count() << "ms" << std::endl;
+        auto duration = duration_cast<nanoseconds>(end - start);
+        FLASH_INFO() << "Match duration = " << duration.count() << "ns" << std::endl;
 
         // ignore this match if the score is <= 0
         if (res.score <= 0) continue;
@@ -290,6 +290,8 @@ namespace flashmatch {
         // Else we store this match. Assign TPC & flash index info
         res.tpc_id = tpc_index_v[tpc_index];//_index;
         res.flash_id = flash_index;//_index;
+        res.duration = duration.count();
+
 
 	if(_store_full) {
 	  _res_tpc_flash_v[res.tpc_id][res.flash_id] = res;

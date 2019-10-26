@@ -135,8 +135,75 @@ def demo(cfg_file, num_tracks):
         print('Match ID',idx)
         print('  TPC/PMT IDs %d/%d Score %f Min-X %f' % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x))
 
-    tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
-    pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
+    #tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
+    #pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
+
+    tpc_id_v = [tpc.idx for tpc in tpc_v]
+    pmt_id_v = [pmt.idx for pmt in pmt_v]
+    all_matches = []
+    for match in match_v:
+        # FIXME is id same as order in tpc_v?
+        qcluster = tpc_v[tpc_id_v.index(match.tpc_id)]
+        flash = pmt_v[pmt_id_v.index(match.flash_id)]
+        store = np.array([[
+            match.score,
+            match.tpc_point.x,
+            match.tpc_point.y,
+            match.tpc_point.z,
+            track_v[qcluster.idx][0][0],
+            track_v[qcluster.idx][0][1],
+            track_v[qcluster.idx][0][2],
+            track_v[qcluster.idx][1][0],
+            track_v[qcluster.idx][1][1],
+            track_v[qcluster.idx][1][2],
+            len(qcluster),
+            int(qcluster.idx == flash.idx),
+            qcluster.sum(),
+            np.sum(match.hypothesis),
+            flash.TotalPE(),
+            match.duration
+        ]])
+        #)]], dtype=[
+        #    ('score', 'f4'),
+        #    ('tpc_point_x', 'f4'),
+        #    ('tpc_point_y', 'f4'),
+        #    ('tpc_point_z', 'f4'),
+        #    ('start_point_x', 'f4'),
+        #    ('start_point_y', 'f4'),
+        #    ('start_point_z', 'f4'),
+        #    ('end_point_x', 'f4'),
+        #    ('end_point_y', 'f4'),
+        #    ('end_point_z', 'f4'),
+        #    ('qcluster_num_points', 'f4'),
+        #    ('matched', 'B'),
+        #    ('qcluster_sum', 'f4'),
+        #    ('flash_sum', 'f4'),
+        #    ('duration', 'f4')
+        #])
+        print(store)
+        print(store.shape)
+        all_matches.append(store)
+    x = np.concatenate(all_matches, axis=0)
+    print(x.shape)
+    names = [
+        'score',
+        'tpc_point_x',
+        'tpc_point_y',
+        'tpc_point_z',
+        'start_point_x',
+        'start_point_y',
+        'start_point_z',
+        'end_point_x',
+        'end_point_y',
+        'end_point_z',
+        'qcluster_num_points',
+        'matched',
+        'qcluster_sum',
+        'hypothesis_sum',
+        'flash_sum',
+        'duration'
+    ]
+    np.savetxt('matches.csv', x, delimiter=',', header=','.join(names))
 
 
 if __name__ == '__main__':

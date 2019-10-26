@@ -30,7 +30,7 @@ namespace flashmatch {
 
     std::vector<double> pe_v; ///< PE distribution over photo-detectors
     std::vector<double> pe_err_v; ///< PE value error
-    double x,y,z;             ///< Flash position 
+    double x,y,z;             ///< Flash position
     double x_err,y_err,z_err; ///< Flash position error
     double time;              ///< Flash timing, a candidate T0
     ID_t idx;                 ///< index from original larlite vector
@@ -83,7 +83,7 @@ namespace flashmatch {
   public:
     ID_t idx;     ///< index from original larlite vector
     double time;  ///< assumed time w.r.t. trigger for reconstruction
-    
+
     /// Default constructor
     QCluster_t() : idx(kINVALID_ID), time(0) {}
     ~QCluster_t() {}
@@ -108,7 +108,7 @@ namespace flashmatch {
 
   };
   std::ostream& operator << (std::ostream& out, const flashmatch::QCluster_t& obj);
-    
+
   /// Collection of 3D point clusters (one use case is TPC object representation for track(s) and shower(s))
   typedef std::vector<flashmatch::QCluster_t> QClusterArray_t;
   /// Collection of Flash objects
@@ -124,6 +124,7 @@ namespace flashmatch {
     double score;  ///< floating point representing the "goodness" (algorithm dependent)
     QPoint_t tpc_point; ///< estimated & matched 3D flash hypothesis point from TPC information
     QPoint_t tpc_point_err; ///< error on the estimated point
+		unsigned int duration; ///< Computation time of the match algorithm on this match (ns)
     std::vector<double> hypothesis;       ///< Hypothesis flash object
     /// Default ctor assigns invalid values
     FlashMatch_t() : hypothesis()
@@ -163,7 +164,7 @@ namespace flashmatch {
       source_type = kUnknownAncestor;
     }
   };
-  
+
   namespace msg {
     /// Verbosity message level
     enum Level_t {
@@ -175,7 +176,7 @@ namespace flashmatch {
       kCRITICAL,
       kMSG_TYPE_MAX
     };
-    
+
     const std::string kStringPrefix[kMSG_TYPE_MAX] =
       {
 	"\033[94m     [DEBUG]  \033[00m", ///< DEBUG message prefix
