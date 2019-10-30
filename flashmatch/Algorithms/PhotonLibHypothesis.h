@@ -2,7 +2,7 @@
  * \file PhotonLibHypothesis.h
  *
  * \ingroup Algorithms
- * 
+ *
  * \brief Class def header for a class PhotonLibHypothesis
  *
  * @author yuntse
@@ -18,6 +18,7 @@
 #include <iostream>
 #include "flashmatch/Base/BaseFlashHypothesis.h"
 #include "flashmatch/Base/FlashHypothesisFactory.h"
+#include <TRandom.h>
 
 namespace flashmatch {
   /**
@@ -25,7 +26,7 @@ namespace flashmatch {
      User custom analysis class made by SHELL_USER_NAME
    */
   class PhotonLibHypothesis : public BaseFlashHypothesis {
-  
+
   public:
 
     /// Default constructor
@@ -40,10 +41,13 @@ namespace flashmatch {
 
     void _Configure_(const Config_t &pset);
 
-    double _global_qe;         ///< Global QE
-    std::vector<double> _qe_v; ///< PMT-wise relative QE
+    double _global_qe;             ///< Global QE
+    double _sigma_qe;              ///< Sigma for Gaussian centered on Global QE
+    std::vector<double> _qe_v;     ///< PMT-wise relative QE
+    //std::vector<double> _local_qe; ///< PMT-wise QE (gaussian centered on global QE)
+    TRandom* _trandom;             ///< TRandom instance
   };
-  
+
   /**
      \class flashmatch::PhotonLibHypothesisFactory
   */
@@ -59,4 +63,4 @@ namespace flashmatch {
 }
 #endif
 
-/** @} */ // end of doxygen group 
+/** @} */ // end of doxygen group

@@ -74,7 +74,7 @@ def gen_input(num_tracks, blob, time_algo="random"):
 
 
 class ToyMC:
-    def __init__(self, cfg_file, CustomAlgo="LightPath"):
+    def __init__(self, cfg_file, CustomAlgo="QCluster"):
         self.mgr = flashmatch.FlashMatchManager()
         self.det = flashmatch.DetectorSpecs.GetME()
         self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
@@ -112,8 +112,7 @@ class ToyMC:
         return self.mgr.Match()
 
 
-def demo(cfg_file, num_tracks):
-    blob = ToyMC(cfg_file)
+def demo(blob, num_tracks, fname='matches.csv'):
     track_v, tpc_v, pmt_v, time_v = gen_input(num_tracks, blob)
     match_v = blob.match(tpc_v, pmt_v)
 
@@ -203,7 +202,7 @@ def demo(cfg_file, num_tracks):
         'flash_sum',
         'duration'
     ]
-    np.savetxt('matches.csv', x, delimiter=',', header=','.join(names))
+    np.savetxt(fname, x, delimiter=',', header=','.join(names))
 
 
 if __name__ == '__main__':
@@ -212,6 +211,8 @@ if __name__ == '__main__':
     cfg_file = os.path.join(os.environ['FMATCH_BASEDIR'],
                             'dat', 'flashmatch.cfg')
     num_tracks = 1
+    gap = 0.5
+    tol = 1e3
     if len(sys.argv) > 1:
         for argv in sys.argv[1:]:
             if argv.isdigit():
@@ -220,4 +221,8 @@ if __name__ == '__main__':
                 cfg_file = sys.argv[1]
 
     # Generate some random tracks
-    demo(cfg_file, num_tracks)
+    blob = ToyMC(cfg_file)
+    blob.cfg.dump()
+    #demo(blob, num_tracks)
+    for idx in range(10000):
+        demo(blob, num_tracks, fname='/gpfs/slac/staas/fs1/g/neutrino/ldomine/PMT/OpT0Finder/2_sigma/csv/matches_gap0.5_ntracks%d_tol1e3_sigmadEdx0.1_sigmaQE0.2_%d.csv' % (num_tracks, idx))

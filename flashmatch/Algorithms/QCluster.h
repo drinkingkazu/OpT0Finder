@@ -1,9 +1,9 @@
 /**
- * \file LightPath.h
+ * \file QCluster.h
  *
  * \ingroup Algorithms
  *
- * \brief Class def header for a class LightPath
+ * \brief Class def header for a class QCluster
  *
  * @author Rui
  */
@@ -11,8 +11,8 @@
 /** \addtogroup Algorithms
 
     @{*/
-#ifndef LIGHTPATH_H
-#define LIGHTPATH_H
+#ifndef QCluster_H
+#define QCluster_H
 
 #include <iostream>
 #include <numeric>
@@ -26,20 +26,20 @@
 
 namespace flashmatch{
 /**
-   \class LightPath
-   User defined class LightPath ... these comments are used to generate
+   \class QCluster
+   User defined class QCluster ... these comments are used to generate
    doxygen documentation!
  */
 
-  class LightPath : public flashmatch::BaseAlgorithm {
+  class QCluster : public flashmatch::BaseAlgorithm {
 
   public:
 
     /// Default constructor
-    LightPath(const std::string name="LightPath");
+    QCluster(const std::string name="QCluster");
 
     /// Default destructor
-    ~LightPath(){}
+    ~QCluster(){}
 
     // Setter function
     double Set_Gap      ( double x) { _gap   =x;      return _gap;}
@@ -47,7 +47,7 @@ namespace flashmatch{
     // Flash Hypothesis for Trajectory (Track)
     flashmatch::QCluster_t FlashHypothesis(const ::geoalgo::Trajectory& trj) const;
 
-    void QCluster(const ::geoalgo::Vector& pt_1,
+    void MakeQCluster(const ::geoalgo::Vector& pt_1,
                   const ::geoalgo::Vector& pt_2,
                   flashmatch::QCluster_t& Q_cluster,
 		  double dedx=-1) const;
@@ -63,22 +63,21 @@ namespace flashmatch{
     double _gap;
     double _light_yield;
     double _dEdxMIP;
-    double _qe;
     double _sigma_dedx;
     TRandom* _trandom;
   };
 
   /**
-     \class flashmatch::LightPathFactory
+     \class flashmatch::QClusterFactory
   */
-  class LightPathFactory : public CustomAlgoFactoryBase {
+  class QClusterFactory : public CustomAlgoFactoryBase {
   public:
     /// ctor
-    LightPathFactory() { CustomAlgoFactory::get().add_factory("LightPath",this); }
+    QClusterFactory() { CustomAlgoFactory::get().add_factory("QCluster",this); }
     /// dtor
-    ~LightPathFactory() {}
+    ~QClusterFactory() {}
     /// creation method
-    BaseAlgorithm* create(const std::string instance_name) { return new LightPath(instance_name); }
+    BaseAlgorithm* create(const std::string instance_name) { return new QCluster(instance_name); }
   };
 }
 

@@ -21,15 +21,6 @@
 
 #pragma link C++ class flashmatch::PhotonLibHypothesis+;
 //#pragma link C++ class flashmatch::ChargeAnalytical+;
-#pragma link C++ class flashmatch::LightPath+;
+#pragma link C++ class flashmatch::QCluster+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
-
-
-
-
-
-
-
-
-

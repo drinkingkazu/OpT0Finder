@@ -22,6 +22,10 @@ namespace flashmatch {
   {
     omp_set_num_threads(NUM_THREADS);
     _global_qe = pset.get<double>("GlobalQE");
+
+    _sigma_qe = pset.get<double>("SigmaQE", 0.0);
+    _trandom      = new TRandom();
+
     _qe_v.clear();
     _qe_v = pset.get<std::vector<double> >("CCVCorrection",_qe_v);
     if(_qe_v.empty()) _qe_v.resize(DetectorSpecs::GetME().NOpDets(),1.0);
@@ -47,6 +51,15 @@ namespace flashmatch {
     auto det = DetectorSpecs::GetME();
 
     auto const& lib_data = DetectorSpecs::GetME().GetPhotonLibraryData();
+
+    // Smearing of QE per PMT
+    std::vector<double> local_qe;
+    local_qe.resize(n_pmt, _global_qe);
+    if (_sigma_qe > 0) {
+        for (size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
+            local_qe[ipmt] = std::max(_trandom->Gaus(_global_qe, _sigma_qe), 0.0);
+        }
+    }
 
     //start = high_resolution_clock::now();
     #pragma omp parallel
@@ -77,7 +90,7 @@ namespace flashmatch {
       }
       #pragma omp critical
       for(size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
-	flash.pe_v[ipmt] += local_pe_v[ipmt] * _global_qe / _qe_v[ipmt];
+	flash.pe_v[ipmt] += local_pe_v[ipmt] * local_qe[ipmt] / _qe_v[ipmt];
       }
 
     }
