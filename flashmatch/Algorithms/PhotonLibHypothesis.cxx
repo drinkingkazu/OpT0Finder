@@ -7,7 +7,7 @@
 #include <chrono>
 
 #include <omp.h>
-#define NUM_THREADS 1
+#define NUM_THREADS 4
 
 using namespace std::chrono;
 namespace flashmatch {

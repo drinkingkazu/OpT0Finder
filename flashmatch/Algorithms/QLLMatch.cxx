@@ -82,7 +82,7 @@ namespace flashmatch {
     FLASH_INFO() << "Without mid-x-init ... maximized 1/param Score=" << res2.score << " @ X=" << res2.tpc_point.x << " [cm]" << std::endl;
 
     auto res = (res1.score > res2.score ? res1 : res2);
-
+    /*
     if(res.score < _onepmt_score_threshold) {
 
       FLASH_INFO() << "Resulting score below OnePMTScoreThreshold... calling OnePMTMatch" << std::endl;
@@ -91,7 +91,7 @@ namespace flashmatch {
       if(res_onepmt.score >= 0.)
 	return res_onepmt;
     }
-
+    */
     return res;
   }
 
@@ -194,7 +194,8 @@ namespace flashmatch {
     //
     // Compute score
     //
-    res.score = 1. / _qll;
+    //res.score = 1. / _qll;
+    res.score = _qll * -1.;
 
     // Compute X-weighting
     /*
@@ -278,6 +279,7 @@ namespace flashmatch {
       throw OpT0FinderException("Cannot compute QLL for unmatched length!");
 
     double O, H, Error;
+
     for (size_t pmt_index = 0; pmt_index < hypothesis.pe_v.size(); ++pmt_index) {
 
       O = measurement.pe_v[pmt_index]; // observation
@@ -303,25 +305,18 @@ namespace flashmatch {
       }
 
       if(_mode == kLLHD) {
-	/* Replaced block to be used in uboonecode
-	_current_llhd -= std::log10(TMath::Poisson(O,H));
-	if(isnan(_current_llhd) || isinf(_current_llhd)) _current_llhd = 1.e6;
-	*/
-	// Updated block
+	/*
 	double arg = TMath::Poisson(O,H);
 	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
 	  _current_llhd -= std::log10(arg);
 	  nvalid_pmt += 1;
-	}
-	/*
-	else {
-	  //std::cout << "else " << O << " " << H << " " << arg << std::endl;
-	  _current_llhd = 1.e6;
-	}
-	if(std::isinf(_current_llhd)) {
-	  _current_llhd = 1.e6;
+	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
 	}
 	*/
+	double arg = (H - O * std::log(H));
+	_current_llhd += arg;
+	if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " ... -LLHD " << arg << std::endl;
+	//nvalid_pmt += 1;
 	// Updated block ends
       } else if (_mode == kChi2) {
 	Error = O;
@@ -338,6 +333,9 @@ namespace flashmatch {
 
     _current_chi2 /= nvalid_pmt;
     _current_llhd /= (nvalid_pmt +1);
+    if(_converged)
+      FLASH_INFO() << "Combined LLHD: " << _current_llhd << " (divided by nvalid_pmt+1 = " << nvalid_pmt+1<<")"<<std::endl;
+
     return (_mode == kChi2 ? _current_chi2 : _current_llhd);
   }
 
@@ -345,8 +343,7 @@ namespace flashmatch {
 		   Double_t * /*Grad*/, // Partial derivatives (return values)
 		   Double_t &Fval, // Function value (return value)
 		   Double_t *Xval, // Parameter values
-		   Int_t /*Flag*/) { // flag word
-
+		   Int_t) /*Flag*/{ // flag word
     //std::cout << "minuit offset : " << Fval << std::endl;
     //std::cout << "minuit Xval?? : " << *Xval << std::endl;
 
@@ -374,7 +371,7 @@ namespace flashmatch {
   }
 
   double QLLMatch::CallMinuit(const QCluster_t &tpc, const Flash_t &pmt, const bool init_x0) {
-
+    
     if (_measurement.pe_v.empty()) {
       _measurement.pe_v.resize(DetectorSpecs::GetME().NOpDets(), 0.);
     }
@@ -388,6 +385,8 @@ namespace flashmatch {
     if (!_penalty_value_v.empty() && _penalty_value_v.size() != pmt.pe_v.size()) {
       throw OpT0FinderException("Penalty value array has a different size than PMT array size!");
     }
+
+    _converged = false;
 
     //
     // Prepare PMT
@@ -444,6 +443,8 @@ namespace flashmatch {
     arglist[1] = _migrad_tolerance; // tolerance*1e-3 = convergence condition
     _minuit_ptr->mnexcm("MIGRAD", arglist, 2, ierrflag);
 
+    _converged = true;
+
     //arglist[0]   = 5.0e+2;
     //arglist[1]   = 1.0e-6;
     //_minuit_ptr->mnexcm ("simplex",arglist,2,ierrflag);
@@ -466,8 +467,8 @@ namespace flashmatch {
     double fValue[1];
     fValue[0] = reco_x;
     // Transfer the minimization variables:
-    MIN_vtx_qll(nPar, grad, Fmin,
-		fValue, ierrflag);
+    MIN_vtx_qll(nPar, grad, Fmin, fValue, ierrflag);
+		
     //static bool show = true;
     /*
       if(show){

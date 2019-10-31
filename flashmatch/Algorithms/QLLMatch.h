@@ -118,6 +118,8 @@ namespace flashmatch {
     double _reco_x_offset_err; ///< reconstructed X offset w/ error
     double _qll;               ///< Minimizer return value
 
+    bool _converged;
+
     TMinuit* _minuit_ptr;
     double _migrad_tolerance;
 
