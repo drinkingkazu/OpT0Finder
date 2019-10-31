@@ -218,7 +218,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
 
     np_result = None
     for event in range(repeat):
-        
+        print('Event',event,'/',repeat)
         # Generate samples
         track_v, tpc_v, pmt_v = mgr.gen_input(num_tracks)
         # Run matching
