@@ -18,7 +18,6 @@
 #include <iostream>
 #include "flashmatch/Base/BaseFlashHypothesis.h"
 #include "flashmatch/Base/FlashHypothesisFactory.h"
-#include <TRandom.h>
 
 namespace flashmatch {
   /**
@@ -44,8 +43,6 @@ namespace flashmatch {
     double _global_qe;             ///< Global QE
     double _sigma_qe;              ///< Sigma for Gaussian centered on Global QE
     std::vector<double> _qe_v;     ///< PMT-wise relative QE
-    //std::vector<double> _local_qe; ///< PMT-wise QE (gaussian centered on global QE)
-    TRandom* _trandom;             ///< TRandom instance
   };
 
   /**
