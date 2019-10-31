@@ -252,9 +252,14 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
             # FIXME is id same as order in tpc_v? YES
             qcluster = tpc_v[tpc_id_v.index(match.tpc_id)]
             flash = pmt_v[pmt_id_v.index(match.flash_id)]
+            start_pt = track_v[qcluster.idx][0]
+            end_pt   = track_v[qcluster.idx][1]
+            true_minx = np.min([start_pt[0],end_pt[0]])
+            reco_minx = match.tpc_point.x
             store = np.array([[
                 event,
                 match.score,
+                true_minx,
                 match.tpc_point.x,
                 match.tpc_point.y,
                 match.tpc_point.z,
@@ -274,6 +279,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
             #)]], dtype=[
             #    ('event', 'i4'),
             #    ('score', 'f4'),
+            #    ('true_min_x', 'f4'),
             #    ('tpc_point_x', 'f4'),
             #    ('tpc_point_y', 'f4'),
             #    ('tpc_point_z', 'f4'),
@@ -303,6 +309,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
     names = [
         'event',
         'score',
+        'true_min_x',
         'tpc_point_x',
         'tpc_point_y',
         'tpc_point_z',
