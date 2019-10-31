@@ -211,14 +211,16 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
     """
     mgr = ToyMC(cfg_file)
     # dump config
-    print(mgr.cfg.dump())
+    sys.stdout.write(mgr.cfg.dump())
+    sys.stdout.flush()
     # override number of tracks to simulate
     if num_tracks is not None:
         num_tracks = int(num_tracks)
 
     np_result = None
     for event in range(repeat):
-        print('Event',event,'/',repeat)
+        sys.stdout.write('Event %d/%d\n' %(event,repeat))
+        sys.stdout.flush()
         # Generate samples
         track_v, tpc_v, pmt_v = mgr.gen_input(num_tracks)
         # Run matching

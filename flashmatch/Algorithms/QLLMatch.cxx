@@ -309,7 +309,7 @@ namespace flashmatch {
 	*/
 	// Updated block
 	double arg = TMath::Poisson(O,H);
-	if(arg > 0. && !std::isnan(arg)) {
+	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
 	  _current_llhd -= std::log10(arg);
 	  nvalid_pmt += 1;
 	}
