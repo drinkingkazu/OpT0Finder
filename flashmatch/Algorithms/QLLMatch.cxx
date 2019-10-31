@@ -293,7 +293,7 @@ namespace flashmatch {
           O = _pe_observation_threshold;
         }
       }
-      if (H <= 0) {
+      if (H <= _pe_hypothesis_threshold) {
         if(!_penalty_threshold_v.empty()) {
           H = _penalty_threshold_v[pmt_index];
         }
@@ -302,9 +302,6 @@ namespace flashmatch {
         }
       }
 
-
-      nvalid_pmt += 1;
-
       if(_mode == kLLHD) {
 	/* Replaced block to be used in uboonecode
 	_current_llhd -= std::log10(TMath::Poisson(O,H));
@@ -312,20 +309,25 @@ namespace flashmatch {
 	*/
 	// Updated block
 	double arg = TMath::Poisson(O,H);
-	if(arg > 0. && !std::isnan(arg))
+	if(arg > 0. && !std::isnan(arg)) {
 	  _current_llhd -= std::log10(arg);
+	  nvalid_pmt += 1;
+	}
+	/*
 	else {
-    //std::cout << "else " << O << " " << H << " " << arg << std::endl;
+	  //std::cout << "else " << O << " " << H << " " << arg << std::endl;
 	  _current_llhd = 1.e6;
-  }
+	}
 	if(std::isinf(_current_llhd)) {
-    _current_llhd = 1.e6;
-  }
+	  _current_llhd = 1.e6;
+	}
+	*/
 	// Updated block ends
       } else if (_mode == kChi2) {
 	Error = O;
 	if( Error < 1.0 ) Error = 1.0;
 	_current_chi2 += std::pow((O - H), 2) / (Error);
+	nvalid_pmt += 1;
       } else {
 	FLASH_ERROR() << "Unexpected mode" << std::endl;
 	throw OpT0FinderException();

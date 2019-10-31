@@ -59,7 +59,7 @@ class ToyMC:
         """
         if num_match is None:
             num_match = self._num_tracks
-        print(num_match)
+
         track_v = self.gen_trajectories(num_match)
         tpc_v = flashmatch.QClusterArray_t()
         pmt_v = flashmatch.FlashArray_t()
@@ -127,7 +127,9 @@ class ToyMC:
         # apply variation if needed
         if self._ly_variation >0.:
             var = abs(np.random.normal(1.0,self._ly_variation,qcluster.size()))
-            for idx, pt in enumerate(qcluster): pt.q *= var[idx]
+            for idx in range(qcluster.size()): qcluster[idx].q *= var[idx]
+
+        #for idx in range(qcluster.size()): qcluster[idx].q *= 0.001
         return qcluster
 
     def make_flash(self, qcluster):
@@ -147,8 +149,7 @@ class ToyMC:
         if self._pe_variation>0.:
             var = abs(np.random.normal(1.0,self._pe_variation,flash.pe_v.size()))
         for idx in range(flash.pe_v.size()):
-            #estimate = np.random.poisson(flash.pe_v[idx] * var[idx])
-            estimate = flash.pe_v[idx] * var[idx]
+            estimate = float(int(np.random.poisson(flash.pe_v[idx] * var[idx])))
             flash.pe_v[idx] = estimate
             flash.pe_err_v[idx]=np.sqrt(estimate) # only good for high npe
         # Decide time range to generate, completely made up for now
@@ -198,13 +199,14 @@ class ToyMC:
             for i in range(hist_xpos.size()):
                 print('Step %d X %f Chi2 %f LLHD %f' % (i,hist_xpos[i],hist_chi2[i],hist_llhd[i]))
 
-def demo(cfg_file,num_tracks=None,fname=''):
+def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
     """
     Run function for ToyMC
     ---------
     Arguments
       cfg_file:   string for the location of a config file
-      fname:      string for an output analysis csv file path (optional)
+      repeat:     int, number of times to run the toy MC simulation
+      out_file:   string for an output analysis csv file path (optional)
       num_tracks: int for number of tracks to be generated (optional) 
     """
     mgr = ToyMC(cfg_file)
@@ -213,70 +215,91 @@ def demo(cfg_file,num_tracks=None,fname=''):
     # override number of tracks to simulate
     if num_tracks is not None:
         num_tracks = int(num_tracks)
-    # Generate samples
-    track_v, tpc_v, pmt_v = mgr.gen_input(num_tracks)
-    # Run matching
-    match_v = mgr.match(tpc_v, pmt_v)
-    
-    print('Number of match result',len(match_v))
-    for idx,match in enumerate(match_v):
-        print('Match ID',idx)
-        print('  TPC/PMT IDs %d/%d Score %f Min-X %f' % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x))
 
-    #tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
-    #pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
-
-    # If no analysis output saving option given, return
-    if not fname: return
+    np_result = None
+    for event in range(repeat):
+        
+        # Generate samples
+        track_v, tpc_v, pmt_v = mgr.gen_input(num_tracks)
+        # Run matching
+        match_v = mgr.match(tpc_v, pmt_v)
     
-    tpc_id_v = [tpc.idx for tpc in tpc_v]
-    pmt_id_v = [pmt.idx for pmt in pmt_v]
-    all_matches = []
-    for match in match_v:
-        # FIXME is id same as order in tpc_v? YES
-        qcluster = tpc_v[tpc_id_v.index(match.tpc_id)]
-        flash = pmt_v[pmt_id_v.index(match.flash_id)]
-        store = np.array([[
-            match.score,
-            match.tpc_point.x,
-            match.tpc_point.y,
-            match.tpc_point.z,
-            track_v[qcluster.idx][0][0],
-            track_v[qcluster.idx][0][1],
-            track_v[qcluster.idx][0][2],
-            track_v[qcluster.idx][1][0],
-            track_v[qcluster.idx][1][1],
-            track_v[qcluster.idx][1][2],
-            len(qcluster),
-            int(qcluster.idx == flash.idx),
-            qcluster.sum(),
-            np.sum(match.hypothesis),
-            flash.TotalPE(),
-            match.duration
-        ]])
-        #)]], dtype=[
-        #    ('score', 'f4'),
-        #    ('tpc_point_x', 'f4'),
-        #    ('tpc_point_y', 'f4'),
-        #    ('tpc_point_z', 'f4'),
-        #    ('start_point_x', 'f4'),
-        #    ('start_point_y', 'f4'),
-        #    ('start_point_z', 'f4'),
-        #    ('end_point_x', 'f4'),
-        #    ('end_point_y', 'f4'),
-        #    ('end_point_z', 'f4'),
-        #    ('qcluster_num_points', 'f4'),
-        #    ('matched', 'B'),
-        #    ('qcluster_sum', 'f4'),
-        #    ('flash_sum', 'f4'),
-        #    ('duration', 'f4')
-        #])
-        print(store)
-        print(store.shape)
-        all_matches.append(store)
-    x = np.concatenate(all_matches, axis=0)
-    print(x.shape)
+        #tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
+        #pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
+
+        # If no analysis output saving option given, return
+        if not out_file:
+            print('Number of match result',len(match_v))
+            for idx,match in enumerate(match_v):
+                print('Match ID',idx)
+                tpc = tpc_v[match.tpc_id]
+                pmt = pmt_v[match.flash_id]
+                true_x = 1.e20
+                for pt in tpc:
+                    if pt.x < true_x: true_x = pt.x
+                true_pe = np.sum(pmt.pe_v)
+                msg = '  TPC/PMT IDs %d/%d Score %f Min-X %f PE sum %f ... true Min-X %f true PE sum %f'
+                msg = msg % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x,np.sum(match.hypothesis),true_x,true_pe)
+                print(msg)
+            continue
+    
+        tpc_id_v = [tpc.idx for tpc in tpc_v]
+        pmt_id_v = [pmt.idx for pmt in pmt_v]
+        all_matches = []
+        for match in match_v:
+            # FIXME is id same as order in tpc_v? YES
+            qcluster = tpc_v[tpc_id_v.index(match.tpc_id)]
+            flash = pmt_v[pmt_id_v.index(match.flash_id)]
+            store = np.array([[
+                event,
+                match.score,
+                match.tpc_point.x,
+                match.tpc_point.y,
+                match.tpc_point.z,
+                track_v[qcluster.idx][0][0],
+                track_v[qcluster.idx][0][1],
+                track_v[qcluster.idx][0][2],
+                track_v[qcluster.idx][1][0],
+                track_v[qcluster.idx][1][1],
+                track_v[qcluster.idx][1][2],
+                len(qcluster),
+                int(qcluster.idx == flash.idx),
+                qcluster.sum(),
+                np.sum(match.hypothesis),
+                flash.TotalPE(),
+                match.duration
+            ]])
+            #)]], dtype=[
+            #    ('event', 'i4'),
+            #    ('score', 'f4'),
+            #    ('tpc_point_x', 'f4'),
+            #    ('tpc_point_y', 'f4'),
+            #    ('tpc_point_z', 'f4'),
+            #    ('start_point_x', 'f4'),
+            #    ('start_point_y', 'f4'),
+            #    ('start_point_z', 'f4'),
+            #    ('end_point_x', 'f4'),
+            #    ('end_point_y', 'f4'),
+            #    ('end_point_z', 'f4'),
+            #    ('qcluster_num_points', 'f4'),
+            #    ('matched', 'B'),
+            #    ('qcluster_sum', 'f4'),
+            #    ('flash_sum', 'f4'),
+            #    ('duration', 'f4')
+            #])
+            #print(store)
+            #print(store.shape)
+            all_matches.append(store)
+        np_event = np.concatenate(all_matches, axis=0)
+        if np_result is None:
+            np_result = np_event
+        else:
+            np_result = np.concatenate([np_result,np_event],axis=0)
+    if not out_file:
+        return
+    #print(x.shape)
     names = [
+        'event',
         'score',
         'tpc_point_x',
         'tpc_point_y',
@@ -294,8 +317,7 @@ def demo(cfg_file,num_tracks=None,fname=''):
         'flash_sum',
         'duration'
     ]
-    np.savetxt(fname, x, delimiter=',', header=','.join(names))
-
+    np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))
 
 if __name__ == '__main__':
     import os
@@ -313,5 +335,5 @@ if __name__ == '__main__':
                 cfg_file = sys.argv[1]
 
     # run demo
-    demo(cfg_file,num_tracks)
+    demo(cfg_file,num_tracks=num_tracks)
 

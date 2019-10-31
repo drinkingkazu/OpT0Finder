@@ -14,15 +14,14 @@ from flashmatch import flashmatch, toymc
 cfg_file = os.path.join(os.environ['FMATCH_BASEDIR'],
                         'dat', 'flashmatch.cfg')
 out_file = ''
-num_tracks = None
 if len(sys.argv) > 1:
     for argv in sys.argv[1:]:
-        if argv.isdigit():
-            num_tracks = int(argv)
-        elif argv.endswith('.cfg'):
-            cfg_file = argv
-        elif argv.endswith('.csv'):
-            out_file = argv
+        if argv.startswith('repeat='):
+            repeat = int(argv.replace('repeat=',''))
+        elif argv.startswith('cfg='):
+            cfg_file = argv.replace('cfg=','')
+        elif argv.startswith('out='):
+            out_file = argv.replace('out=','')
 
 # run demo
-toymc.demo(cfg_file,num_tracks,out_file)
+toymc.demo(cfg_file,repeat=repeat,out_file=out_file)

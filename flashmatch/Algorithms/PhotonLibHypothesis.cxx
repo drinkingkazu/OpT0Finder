@@ -78,7 +78,7 @@ namespace flashmatch {
       }
       #pragma omp critical
       for(size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
-	flash.pe_v[ipmt] += local_pe_v[ipmt] / _qe_v[ipmt];
+	flash.pe_v[ipmt] += local_pe_v[ipmt] * _global_qe / _qe_v[ipmt];
       }
 
     }
