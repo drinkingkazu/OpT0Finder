@@ -1,6 +1,6 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
-import sys
+import sys, ast
 
 class ToyMC:
     def __init__(self, cfg_file=None):
@@ -12,6 +12,9 @@ class ToyMC:
         self._track_algo     = None
         self._ly_variation = 0.0
         self._pe_variation = 0.0
+        self._period = [-1000,1000]
+        self._min_flash_pe = 0.0
+        self._min_track_length = 0.0
         if not cfg_file is None:
             self.configure(cfg_file)
 
@@ -37,6 +40,14 @@ class ToyMC:
         self._track_algo = str(pset.get('TrackAlgo'))
         # Number of tracks to generate at once
         self._num_tracks = int(pset.get('NumTracks'))
+        # Period in micro-seconds
+        self._period = ast.literal_eval(pset.get('Period'))
+        # Minimum track length to be registered for matching
+        self._min_track_length = float(pset.get("MinTrackLength"))
+        # Minimum PE to be registered for matching
+        self._min_flash_pe = float(pset.get("MinFlashPE"))
+        # Truncate TPC tracks (readout effect)
+        self._truncate_tpc = int(pset.get("TruncateTPC"))
         # Set seed if there is any specified
         if pset.contains_value('NumpySeed'):
             seed = int(pset.get('NumpySeed'))
@@ -59,24 +70,89 @@ class ToyMC:
         """
         if num_match is None:
             num_match = self._num_tracks
-
+        # Generate 3D trajectories inside the detector
         track_v = self.gen_trajectories(num_match)
-        tpc_v = flashmatch.QClusterArray_t()
+        # Generate flash time and x shift (for reco x position assuming trigger time)
+        xt_v  = self.gen_xt_shift(len(track_v))
+        # Define allowed X recording regions
+        min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._period]
         pmt_v = flashmatch.FlashArray_t()
+        tpc_v = flashmatch.QClusterArray_t()
+        raw_tpc_v = flashmatch.QClusterArray_t()
+        orphan_pmt=[]
+        orphan_tpc=[]
+        orphan_raw=[]
+        match_id = 0
+        true_track_v = []
         for idx, track in enumerate(track_v):
             # TPC xyz & light info
-            qcluster = self.make_qcluster(track)
+            raw_qcluster = self.make_qcluster(track)
             # PMT pe spectrum
-            flash = self.make_flash(qcluster)
-            # set IDs
-            qcluster.idx = idx
-            flash.idx    = idx
-            # save
-            tpc_v.push_back(qcluster)
-            pmt_v.push_back(flash)
-            
-        return track_v, tpc_v, pmt_v
+            flash = self.make_flash(raw_qcluster)
+            # Apply x shift and set flash time
+            ftime,dx = xt_v[idx]
+            flash.time = ftime
+            qcluster = raw_qcluster + dx
+            # Drop QCluster points that are outside the recording range
+            if self._truncate_tpc:
+                qcluster.drop(min_tpcx,max_tpcx)
+            # check if this is an orphan
+            orphan = qcluster.size() and track.Length() > self._min_track_length and np.sum(flash.pe_v) > self._min_flash_pe
+            if not orphan:
+                # set IDs
+                qcluster.idx = match_id
+                flash.idx    = match_id
+                match_id += 1
+                pmt_v.push_back(flash)
+                tpc_v.push_back(qcluster)
+                raw_tpc_v.push_back(raw_qcluster)
+                true_track_v.append(track)
+            else:
+                if np.sum(flash.pe_v) > self._min_flash_pe:
+                    orphan_pmt.append(flash)
+                if qcluster.size() and track.Length() > self._min_track_length:
+                    orphan_tpc.append(qcluster)
+                    orphan_raw.append(raw_qcluster)
 
+        # append orphans
+        for orphan in orphan_pmt:
+            orphan.idx = pmt_v.size()
+            pmt_v.push_back(orphan)
+        for orphan in orphan_tpc:
+            orphan.idx = tpc_v.size()
+            tpc_v.push_back(orphan)
+        for orphan in orphan_raw:
+            orphan.idx = raw_tpc_v.size()
+            raw_tpc_v.push_back(orphan)
+
+        return true_track_v, pmt_v, tpc_v, raw_tpc_v
+
+    def gen_xt_shift(self,n):
+        """
+        Generate flash timing and corresponding X shift
+        ---------
+        Arguments
+          n: int, number of track/flash (number of flash time to be generated)
+        -------
+        Returns
+          a list of pairs, (flash time, dx to be applied on TPC points)
+        """
+        time_dx_v = []
+        duration = self._period[1] - self._period[0]
+        for idx in range(n):
+            t,x=0.,0.
+            if self._time_algo == 'random':
+                t = np.random.random() * duration + self._period[0]
+            elif self._time_algo == 'periodic':
+                t = (idx + 0.5) * duration / n + self._period[0]
+            elif self._time_algo == 'same':
+                t = 0.
+            else:
+                raise Exception("Time algo not recognized, must be one of ['random', 'periodic']")
+            x = t * self.det.DriftVelocity()
+            time_dx_v.append((t,x))
+        return time_dx_v
+        
 
     def gen_trajectories(self,num_tracks):
         """
@@ -152,17 +228,7 @@ class ToyMC:
             estimate = float(int(np.random.poisson(flash.pe_v[idx] * var[idx])))
             flash.pe_v[idx] = estimate
             flash.pe_err_v[idx]=np.sqrt(estimate) # only good for high npe
-        # Decide time range to generate, completely made up for now
-        # in us
-        if self._time_algo == 'random':
-            # random -1e3 to 1e3
-            flash.time = np.random.random() * (2000.) + 1000.
-        elif self._time_algo == 'x':
-            x_distance = (track[0][0] - self.det.ActiveVolume().Min()[0])  # cm
-            # 3e-3 us to cover 1m
-            flash.time = x_distance * 3e-5
-        else:
-            raise Exception("Time algo not recognized, must be one of ['random', 'x']")
+
         return flash
 
     def match(self, tpc_v, pmt_v):
@@ -222,40 +288,42 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
         sys.stdout.write('Event %d/%d\n' %(event,repeat))
         sys.stdout.flush()
         # Generate samples
-        track_v, tpc_v, pmt_v = mgr.gen_input(num_tracks)
+        track_v, pmt_v, tpc_v, raw_tpc_v = mgr.gen_input(num_tracks)
         # Run matching
         match_v = mgr.match(tpc_v, pmt_v)
     
         #tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
         #pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
 
+        # Either report or store output
+        true_xmin_v = []
+        for idx in range(tpc_v.size()):
+            tpc = tpc_v[idx]
+            pmt = pmt_v[idx]
+            true_xmin_v.append(tpc.min_x() - pmt.time * mgr.det.DriftVelocity())
+
         # If no analysis output saving option given, return
         if not out_file:
             print('Number of match result',len(match_v))
-            for idx,match in enumerate(match_v):
-                print('Match ID',idx)
-                tpc = tpc_v[match.tpc_id]
-                pmt = pmt_v[match.flash_id]
-                true_x = 1.e20
-                for pt in tpc:
-                    if pt.x < true_x: true_x = pt.x
-                true_pe = np.sum(pmt.pe_v)
-                msg = '  TPC/PMT IDs %d/%d Score %f Min-X %f PE sum %f ... true Min-X %f true PE sum %f'
-                msg = msg % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x,np.sum(match.hypothesis),true_x,true_pe)
-                print(msg)
-            continue
     
-        tpc_id_v = [tpc.idx for tpc in tpc_v]
-        pmt_id_v = [pmt.idx for pmt in pmt_v]
         all_matches = []
         for match in match_v:
             # FIXME is id same as order in tpc_v? YES
-            qcluster = tpc_v[tpc_id_v.index(match.tpc_id)]
-            flash = pmt_v[pmt_id_v.index(match.flash_id)]
-            start_pt = track_v[qcluster.idx][0]
-            end_pt   = track_v[qcluster.idx][1]
-            true_minx = np.min([start_pt[0],end_pt[0]])
-            reco_minx = match.tpc_point.x
+            tpc = tpc_v[match.tpc_id]
+            pmt = pmt_v[match.flash_id]
+            raw = raw_tpc_v[match.tpc_id]
+            truncation   = raw.front().dist(raw.back()) - tpc.front().dist(tpc.back())
+            truncation_frac = truncation / raw.front().dist(raw.back())
+            true_minx = true_xmin_v[match.tpc_id]
+            correct_match = tpc.idx == pmt.idx and tpc.idx < len(track_v)
+
+            if not out_file:
+                print('Match ID',idx)
+                msg = '  TPC/PMT IDs %d/%d Score %f Min-X %f PE sum %f ... true Min-X %f true PE sum %f truncation %f (%f%%)'
+                msg = msg % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x,np.sum(match.hypothesis),
+                             true_minx,np.sum(pmt.pe_v),truncation,truncation_frac*100.)
+                print(msg)
+                continue
             store = np.array([[
                 event,
                 match.score,
@@ -263,17 +331,26 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
                 match.tpc_point.x,
                 match.tpc_point.y,
                 match.tpc_point.z,
-                track_v[qcluster.idx][0][0],
-                track_v[qcluster.idx][0][1],
-                track_v[qcluster.idx][0][2],
-                track_v[qcluster.idx][1][0],
-                track_v[qcluster.idx][1][1],
-                track_v[qcluster.idx][1][2],
-                len(qcluster),
-                int(qcluster.idx == flash.idx),
-                qcluster.sum(),
+                tpc.front().x,
+                tpc.front().y,
+                tpc.front().z,
+                tpc.back().x,
+                tpc.back().y,
+                tpc.back().z,
+                raw.front().x,
+                raw.front().y,
+                raw.front().z,
+                raw.back().x,
+                raw.back().y,
+                raw.back().z,
+                truncation,
+                truncation_frac,
+                len(tpc),
+                int(tpc.idx == pmt.idx),
+                tpc.sum(),
                 np.sum(match.hypothesis),
-                flash.TotalPE(),
+                pmt.TotalPE(),
+                pmt.time,
                 match.duration
             ]])
             #)]], dtype=[
@@ -289,20 +366,30 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
             #    ('end_point_x', 'f4'),
             #    ('end_point_y', 'f4'),
             #    ('end_point_z', 'f4'),
+            #    ('raw_start_point_x', 'f4'),
+            #    ('raw_start_point_y', 'f4'),
+            #    ('raw_start_point_z', 'f4'),
+            #    ('raw_end_point_x', 'f4'),
+            #    ('raw_end_point_y', 'f4'),
+            #    ('raw_end_point_z', 'f4'),
+            #    ('truncation', 'f4'),
+            #    ('truncation_fraction', 'f4'),
             #    ('qcluster_num_points', 'f4'),
             #    ('matched', 'B'),
             #    ('qcluster_sum', 'f4'),
             #    ('flash_sum', 'f4'),
+            #    ('flash_time', 'f4'),
             #    ('duration', 'f4')
             #])
             #print(store)
             #print(store.shape)
             all_matches.append(store)
-        np_event = np.concatenate(all_matches, axis=0)
-        if np_result is None:
-            np_result = np_event
-        else:
-            np_result = np.concatenate([np_result,np_event],axis=0)
+        if out_file:    
+            np_event = np.concatenate(all_matches, axis=0)
+            if np_result is None:
+                np_result = np_event
+            else:
+                np_result = np.concatenate([np_result,np_event],axis=0)
     if not out_file:
         return
     #print(x.shape)
@@ -319,11 +406,20 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
         'end_point_x',
         'end_point_y',
         'end_point_z',
+        'raw_start_point_x',
+        'raw_start_point_y',
+        'raw_start_point_z',
+        'raw_end_point_x',
+        'raw_end_point_y',
+        'raw_end_point_z',
+        'truncation',
+        'truncation_fraction',
         'qcluster_num_points',
         'matched',
         'qcluster_sum',
         'hypothesis_sum',
         'flash_sum',
+        'flash_time',
         'duration'
     ]
     np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))

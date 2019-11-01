@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include "OpT0FinderTypes.h"
-#include <cmath>
+
 namespace flashmatch {
   
   double QCluster_t::sum() const
@@ -18,6 +18,18 @@ namespace flashmatch {
       len += sqrt(pow(pt0.x - pt1.x,2)+pow(pt0.y - pt1.y,2)+pow(pt0.z - pt1.z,2));
     }
     return len;
+  }
+
+  void QCluster_t::drop(double x_min, double x_max)
+  {
+    QCluster_t another;
+    another.reserve(this->size());
+    for(auto const& pt : (*this)) {
+      if(pt.x < x_min) continue;
+      if(pt.x > x_max) continue;
+      another.push_back(pt);
+    }
+    (*this) = another;
   }
 
   /// streamer override

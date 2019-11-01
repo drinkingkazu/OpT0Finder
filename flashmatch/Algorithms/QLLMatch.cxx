@@ -10,7 +10,7 @@
 #include <TMath.h>
 #include <cassert>
 #include <chrono>
-
+#include <climits>
 using namespace std::chrono;
 namespace flashmatch {
 
@@ -194,8 +194,10 @@ namespace flashmatch {
     //
     // Compute score
     //
-    //res.score = 1. / _qll;
-    res.score = _qll * -1.;
+    if(_mode == kSimpleLLHD)
+      res.score = _qll * -1.;
+    else
+      res.score = 1. / _qll;
 
     // Compute X-weighting
     /*
@@ -305,24 +307,27 @@ namespace flashmatch {
       }
 
       if(_mode == kLLHD) {
-	/*
+
 	double arg = TMath::Poisson(O,H);
 	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
 	  _current_llhd -= std::log10(arg);
 	  nvalid_pmt += 1;
 	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
 	}
-	*/
+      }else if (_mode == kSimpleLLHD) {
+
 	double arg = (H - O * std::log(H));
 	_current_llhd += arg;
 	if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " ... -LLHD " << arg << std::endl;
 	//nvalid_pmt += 1;
-	// Updated block ends
+	
       } else if (_mode == kChi2) {
+	
 	Error = O;
 	if( Error < 1.0 ) Error = 1.0;
 	_current_chi2 += std::pow((O - H), 2) / (Error);
 	nvalid_pmt += 1;
+	
       } else {
 	FLASH_ERROR() << "Unexpected mode" << std::endl;
 	throw OpT0FinderException();
@@ -412,8 +417,13 @@ namespace flashmatch {
     if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
 
     double reco_x = _vol_xmin + 10;
-    if (!init_x0)
-      reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
+    if (!init_x0) {
+      //reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
+      // Assume this is the right flash... then
+      reco_x = _raw_xmin_pt.x - pmt.time * DetectorSpecs::GetME().DriftVelocity();
+      if(reco_x < _vol_xmin || (reco_x + _raw_xmax_pt.x - _raw_xmin_pt.x) > _vol_xmax)
+	return kINVALID_DOUBLE;
+    }
     double reco_x_err = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2.;
     double xmin = _vol_xmin;
     double xmax = (_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x) + _vol_xmin;

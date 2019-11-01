@@ -28,7 +28,7 @@ namespace flashmatch {
 
   public:
 
-    enum QLLMode_t { kChi2, kLLHD };
+    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD };
 
   private:
     /// Valid ctor hidden (singleton)
@@ -91,7 +91,7 @@ namespace flashmatch {
     FlashMatch_t OnePMTMatch(const Flash_t &flash);
 
     static QLLMatch* _me;
-
+    
     QLLMode_t _mode;   ///< Minimizer mode
     bool _record;      ///< Boolean switch to record minimizer history
     double _normalize; ///< Noramalize hypothesis PE spectrum

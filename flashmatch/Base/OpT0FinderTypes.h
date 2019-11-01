@@ -5,7 +5,7 @@
 #include <numeric>
 #include "OpT0FinderConstants.h"
 #include <string>
-
+#include <cmath>
 namespace flashmatch {
 
   /// Index used to identify Flash_t/QPointCollection_t uniquely in an event
@@ -76,6 +76,9 @@ namespace flashmatch {
       , z(zvalue)
       , q(qvalue)
     {}
+    /// distance
+    inline double dist(const QPoint_t& pt)
+    { return sqrt(pow(pt.x-x,2)+pow(pt.y-y,2)+pow(pt.z-z,2)); }
   };
 
   /// Collection of charge deposition 3D point (cluster)
@@ -93,6 +96,19 @@ namespace flashmatch {
 
     /// returns the total trajectory length
     double length() const;
+
+    /// drop points outside the x range specified
+    void drop(double xmin, double xmax);
+
+    /// minimum x
+    inline double min_x() const
+    { double x=flashmatch::kINVALID_DOUBLE; for(auto const& pt : (*this)) x = std::min(x,pt.x); return x; }
+
+    inline QCluster_t& operator+=(const double shift)
+    { for(auto& pt : (*this)) pt.x += shift; return (*this); }
+
+    inline QCluster_t operator+(const double shift)
+    { auto result = (*this); result += shift; return result; }
 
     inline QCluster_t& operator+=(const QCluster_t& rhs) {
       this->reserve(rhs.size() + this->size());
