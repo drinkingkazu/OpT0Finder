@@ -12,7 +12,8 @@ class ToyMC:
         self._track_algo     = None
         self._ly_variation = 0.0
         self._pe_variation = 0.0
-        self._period = [-1000,1000]
+        self._periodTPC = [-1000,1000]
+        self._periodPMT = [-1000,1000]
         self._min_flash_pe = 0.0
         self._min_track_length = 0.0
         if not cfg_file is None:
@@ -41,7 +42,8 @@ class ToyMC:
         # Number of tracks to generate at once
         self._num_tracks = int(pset.get('NumTracks'))
         # Period in micro-seconds
-        self._period = ast.literal_eval(pset.get('Period'))
+        self._periodTPC = ast.literal_eval(pset.get('PeriodTPC'))
+        self._periodPMT = ast.literal_eval(pset.get('PeriodPMT'))
         # Minimum track length to be registered for matching
         self._min_track_length = float(pset.get("MinTrackLength"))
         # Minimum PE to be registered for matching
@@ -75,7 +77,7 @@ class ToyMC:
         # Generate flash time and x shift (for reco x position assuming trigger time)
         xt_v  = self.gen_xt_shift(len(track_v))
         # Define allowed X recording regions
-        min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._period]
+        min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._periodTPC]
         pmt_v = flashmatch.FlashArray_t()
         tpc_v = flashmatch.QClusterArray_t()
         raw_tpc_v = flashmatch.QClusterArray_t()
@@ -138,13 +140,13 @@ class ToyMC:
           a list of pairs, (flash time, dx to be applied on TPC points)
         """
         time_dx_v = []
-        duration = self._period[1] - self._period[0]
+        duration = self._periodPMT[1] - self._periodPMT[0]
         for idx in range(n):
             t,x=0.,0.
             if self._time_algo == 'random':
-                t = np.random.random() * duration + self._period[0]
+                t = np.random.random() * duration + self._periodPMT[0]
             elif self._time_algo == 'periodic':
-                t = (idx + 0.5) * duration / n + self._period[0]
+                t = (idx + 0.5) * duration / n + self._periodPMT[0]
             elif self._time_algo == 'same':
                 t = 0.
             else:
@@ -152,7 +154,7 @@ class ToyMC:
             x = t * self.det.DriftVelocity()
             time_dx_v.append((t,x))
         return time_dx_v
-        
+
 
     def gen_trajectories(self,num_tracks):
         """
@@ -273,7 +275,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
       cfg_file:   string for the location of a config file
       repeat:     int, number of times to run the toy MC simulation
       out_file:   string for an output analysis csv file path (optional)
-      num_tracks: int for number of tracks to be generated (optional) 
+      num_tracks: int for number of tracks to be generated (optional)
     """
     mgr = ToyMC(cfg_file)
     # dump config
@@ -291,7 +293,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
         track_v, pmt_v, tpc_v, raw_tpc_v = mgr.gen_input(num_tracks)
         # Run matching
         match_v = mgr.match(tpc_v, pmt_v)
-    
+
         #tpc_v = [flashmatch.as_ndarray(tpc) for tpc in tpc_v]
         #pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
 
@@ -305,7 +307,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
         # If no analysis output saving option given, return
         if not out_file:
             print('Number of match result',len(match_v))
-    
+
         all_matches = []
         for match in match_v:
             # FIXME is id same as order in tpc_v? YES
@@ -384,7 +386,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
             #print(store)
             #print(store.shape)
             all_matches.append(store)
-        if out_file:    
+        if out_file:
             np_event = np.concatenate(all_matches, axis=0)
             if np_result is None:
                 np_result = np_event
@@ -441,4 +443,3 @@ if __name__ == '__main__':
 
     # run demo
     demo(cfg_file,num_tracks=num_tracks)
-
