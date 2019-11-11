@@ -99,6 +99,7 @@ namespace flashmatch {
 
     FlashMatch_t res;
     res.score=-1;
+    res.num_steps = 1;
     // Check if pesum threshold condition is met to use this method
     double pesum = flash.TotalPE();
     if(pesum < _onepmt_pesum_threshold) {
@@ -169,6 +170,7 @@ namespace flashmatch {
 
     // Estimate position
     FlashMatch_t res;
+    res.num_steps = _num_steps;
     if (std::isnan(_qll)) return res;
 
     res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = 0;
@@ -320,14 +322,14 @@ namespace flashmatch {
 	_current_llhd += arg;
 	if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " ... -LLHD " << arg << std::endl;
 	//nvalid_pmt += 1;
-	
+
       } else if (_mode == kChi2) {
-	
+
 	Error = O;
 	if( Error < 1.0 ) Error = 1.0;
 	_current_chi2 += std::pow((O - H), 2) / (Error);
 	nvalid_pmt += 1;
-	
+
       } else {
 	FLASH_ERROR() << "Unexpected mode" << std::endl;
 	throw OpT0FinderException();
@@ -371,17 +373,20 @@ namespace flashmatch {
     //std::cout << "Duration QLL = " << duration.count() << "us" << std::endl;
 
     QLLMatch::GetME()->Record(Xval[0]);
+    QLLMatch::GetME()->OneStep();
 
     return;
   }
 
   double QLLMatch::CallMinuit(const QCluster_t &tpc, const Flash_t &pmt, const bool init_x0) {
-    
+
     if (_measurement.pe_v.empty()) {
       _measurement.pe_v.resize(DetectorSpecs::GetME().NOpDets(), 0.);
     }
-    if (_measurement.pe_v.size() != pmt.pe_v.size())
+    if (_measurement.pe_v.size() != pmt.pe_v.size()) {
+      std::cout << _measurement.pe_v.size() << " " << pmt.pe_v.size() << std::endl;
       throw OpT0FinderException("PMT dimension has changed!");
+    }
 
     if (!_penalty_threshold_v.empty() && _penalty_threshold_v.size() != pmt.pe_v.size()) {
       throw OpT0FinderException("Penalty threshold array has a different size than PMT array size!");
@@ -413,6 +418,7 @@ namespace flashmatch {
     _minimizer_record_chi2_v.clear();
     _minimizer_record_llhd_v.clear();
     _minimizer_record_x_v.clear();
+    _num_steps = 0;
 
     if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
 
@@ -478,7 +484,7 @@ namespace flashmatch {
     fValue[0] = reco_x;
     // Transfer the minimization variables:
     MIN_vtx_qll(nPar, grad, Fmin, fValue, ierrflag);
-		
+
     //static bool show = true;
     /*
       if(show){

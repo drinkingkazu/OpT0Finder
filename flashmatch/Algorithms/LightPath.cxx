@@ -85,9 +85,27 @@ namespace flashmatch {
       LightPath::MakeQCluster(this_loc, last_loc, result);
     }
 
-    FLASH_INFO() << result << std::endl;
+    // Trimming Q_cluster
+    auto const& bbox = DetectorSpecs::GetME().ActiveVolume();
+    double _vol_xmax = bbox.Max()[0];
+    double _vol_ymax = bbox.Max()[1];
+    double _vol_zmax = bbox.Max()[2];
 
-    return result;
+    double _vol_xmin = bbox.Min()[0];
+    double _vol_ymin = bbox.Min()[1];
+    double _vol_zmin = bbox.Min()[2];
+    FLASH_INFO() << result << std::endl;
+    QCluster_t final_result;
+    final_result.clear();
+    for (size_t idx = 0; idx < result.size(); ++idx) {
+        auto pt = result[idx];
+        if (pt.x >= _vol_xmin && pt.x <= _vol_xmax && pt.y >= _vol_ymin && pt.y <= _vol_ymax && pt.z >= _vol_zmin && pt.z <= _vol_zmax) {
+            final_result.push_back(pt);
+        }
+    }
+    FLASH_INFO() << final_result << std::endl;
+
+    return final_result;
   }
 
 }

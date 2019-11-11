@@ -3,7 +3,7 @@ from flashmatch import flashmatch, geoalgo
 import sys, ast
 
 class ToyMC:
-    def __init__(self, cfg_file=None):
+    def __init__(self, cfg_file=None, opflashana=None,particleana=None):
         self.mgr = flashmatch.FlashMatchManager()
         self.det = flashmatch.DetectorSpecs.GetME()
         self._qcluster_algo  = None
@@ -18,6 +18,16 @@ class ToyMC:
         self._min_track_length = 0.0
         if not cfg_file is None:
             self.configure(cfg_file)
+        if particleana is not None and opflashana is not None:
+            from root_numpy import root2array
+            # import glob
+            # particleana_list = glob.glob(particleana)
+            # opflashana_list = glob.glob(opflashana)
+            # assert len(particleana_list) == list(opflashana_list)
+            # #particles = root2array(particleana, 'largeant_particletree')
+            # for i in range(len(particleana_list)):
+            self._particles = root2array(particleana, 'mctracktree')
+            self._opflash = root2array(opflashana, 'opflash_flashtree')
 
     def configure(self,cfg_file):
         self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
@@ -58,6 +68,148 @@ class ToyMC:
                 seed = int(time.time())
             np.random.seed(seed)
 
+
+    def read_input(self, event):
+        """
+        Make sample from ROOT files
+        """
+        # from ROOT import TChain
+        # ch_particle = TChain('largeant_particletree')
+        # ch_particle.AddFile(particleana)
+        # ch_opflash = TChain('opflash_flashtree')
+        # ch_opflash.AddFile(opflashana)
+        # # ch_cheatflash = TChain('cheatflash_flashtree')
+        # num_tracks = ch_particle.GetEntries()
+        # for e in range(num_tracks):
+        #     ch_particle.GetEntry(e)
+        #     ch_opflash.GetEntry(e)
+        #     br_particle = getattr(ch_particle, 'largeant_particlebranch')
+        #     br_opflash = getattr(ch_opflash, 'opflash_flashbranch')
+
+
+        particles = self._particles[(self._particles['event'] == event) & (self._particles['pdg_code'] == 13)]
+        opflash = self._opflash[self._opflash['event'] == event]
+
+        num_tracks = max(len(particles), len(opflash))
+        print("Particle ", len(particles), " Flashes ", len(opflash))
+        # for p in particles:
+        #     print(p['start_x'], p['start_y'], p['start_z'])
+        #     print(p['end_x'], p['end_y'], p['end_z'])
+        for f in opflash:
+            print("Opflash sum = ", f['pe_v'][:180].sum(), "; MCFlash sum = ", f['pe_true_v'][:180].sum())
+        #assert len(particles) == len(opflash)
+        #xt_v  = self.gen_xt_shift(num_tracks)
+
+        # Define allowed X recording regions
+        min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._periodTPC]
+        pmt_v = flashmatch.FlashArray_t()
+        tpc_v = flashmatch.QClusterArray_t()
+        raw_tpc_v = flashmatch.QClusterArray_t()
+        orphan_pmt=[]
+        orphan_tpc=[]
+        orphan_raw=[]
+        match_id = 0
+        true_track_v = []
+        print('Loaded %d tracks' % num_tracks)
+        for i in range(num_tracks):
+            flash = None
+            if i < len(opflash):
+                flash = flashmatch.Flash_t()
+                #print(len(opflash[i]['pe_v']))
+                for x in opflash[i]['pe_v'][:180]:  # FIXME hardcoded NOpDets
+                    flash.pe_v.push_back(x)
+                    flash.pe_err_v.push_back(0.)
+                for x in opflash[i]['pe_true_v'][:180]:
+                    flash.pe_true_v.push_back(x)
+                flash.x = opflash[i]['x']
+                flash.y = opflash[i]['y']
+                flash.z = opflash[i]['z']
+                flash.xerr, flash.yerr, flash.zerr = 0., 0., 0.
+                flash.time = opflash[i]['time']
+                flash.idx = i
+
+            #raw_qcluster = flashmatch.QCluster_t()
+            #raw_qcluster.time = particles[i]['time_v'][0]
+            #raw_qcluster.idx = i
+            track, qcluster, raw_qcluster = None, None, None
+            if i < len(particles):
+                track = geoalgo.Trajectory(len(particles[i]['x_v']), 3)
+                for j in range(len(particles[i]['x_v'])):
+                    # print(particles[i]['time_v'][j])
+                    # qpoint = flashmatch.QPoint_t(
+                    #     particles[i]['x_v'][j],
+                    #     particles[i]['y_v'][j],
+                    #     particles[i]['z_v'][j],
+                    #     particles[i]['energy_v'][j]*24000
+                    # )
+                    #print(i, j, qpoint.x)
+                    #raw_qcluster.push_back(qpoint)
+                    track[j] = geoalgo.Vector(
+                        particles[i]['x_v'][j],
+                        particles[i]['y_v'][j],
+                        particles[i]['z_v'][j]
+                    )
+                if track.size() == 0:
+                    track = None
+                if track is not None:
+                    #print('track', track)
+                    raw_qcluster = self.make_qcluster(track)
+
+                    # flash = self.make_flash(raw_qcluster)
+                    # ftime,dx = xt_v[i]
+                    #ftime,dx = particles[i]['time_v'][0], particles[i]['time_v'][0] * self.det.DriftVelocity()
+                    # flash.time = ftime
+                    # print('opflash vs flash pe')
+                    # print(len(opflash[i]['pe_v']), len(flash.pe_v))
+                    # for k in range(180):
+                    #     if opflash[i]['pe_v'][k] > 0:
+                    #         diff = (opflash[i]['pe_v'][k] - flash.pe_v[k]) / opflash[i]['pe_v'][k]
+                    #     else:
+                    #         diff = -1
+                    #     print(diff, opflash[i]['pe_v'][k], flash.pe_v[k])
+
+                    qcluster = raw_qcluster #+ dx
+                    # track = geoalgo.Trajectory(2, 3)
+                    # track[0] = geoalgo.Vector(particles[i]['start_x'], particles[i]['start_y'], particles[i]['start_z'])
+                    # track[1] = geoalgo.Vector(particles[i]['end_x'], particles[i]['end_y'], particles[i]['end_z'])
+                    # raw_qcluster = self.make_qcluster(track)
+                    # qcluster = raw_qcluster + particles[i]['start_t'] * self.det.DriftVelocity()
+
+                    # Drop QCluster points that are outside the recording range
+                    if self._truncate_tpc:
+                        qcluster.drop(min_tpcx,max_tpcx)
+
+            # check if this is an orphan
+            orphan = qcluster is not None and flash is not None and qcluster.size() and track.Length() > self._min_track_length and np.sum(flash.pe_v) > self._min_flash_pe
+            #print(i, orphan, qcluster, flash)
+            if orphan:
+                # set IDs
+                qcluster.idx = match_id
+                flash.idx    = match_id
+                match_id += 1
+                pmt_v.push_back(flash)
+                tpc_v.push_back(qcluster)
+                raw_tpc_v.push_back(raw_qcluster)
+                true_track_v.append(track)
+            else:
+                if flash is not None and np.sum(flash.pe_v) > self._min_flash_pe:
+                    orphan_pmt.append(flash)
+                if qcluster is not None and qcluster.size() and track is not None and track.Length() > self._min_track_length:
+                    orphan_tpc.append(qcluster)
+                    orphan_raw.append(raw_qcluster)
+
+        # append orphans
+        for orphan in orphan_pmt:
+            orphan.idx = pmt_v.size()
+            pmt_v.push_back(orphan)
+        for orphan in orphan_tpc:
+            orphan.idx = tpc_v.size()
+            tpc_v.push_back(orphan)
+        for orphan in orphan_raw:
+            orphan.idx = raw_tpc_v.size()
+            raw_tpc_v.push_back(orphan)
+        print("orphans", len(orphan_pmt), len(orphan_tpc), len(orphan_raw))
+        return true_track_v, pmt_v, tpc_v, raw_tpc_v
 
     # Create a set ot TPC (flashmatch::QCluster) and PMT (flashmatch::Flash_t) interactions
     def gen_input(self,num_match=None):
@@ -267,7 +419,7 @@ class ToyMC:
             for i in range(hist_xpos.size()):
                 print('Step %d X %f Chi2 %f LLHD %f' % (i,hist_xpos[i],hist_chi2[i],hist_llhd[i]))
 
-def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
+def demo(cfg_file,repeat=17,num_tracks=None,out_file='',particleana=None,opflashana=None):
     """
     Run function for ToyMC
     ---------
@@ -277,20 +429,27 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
       out_file:   string for an output analysis csv file path (optional)
       num_tracks: int for number of tracks to be generated (optional)
     """
-    mgr = ToyMC(cfg_file)
+    mgr = ToyMC(cfg_file, particleana=particleana, opflashana=opflashana)
     # dump config
     sys.stdout.write(mgr.cfg.dump())
     sys.stdout.flush()
     # override number of tracks to simulate
+    event_list = range(repeat)
     if num_tracks is not None:
         num_tracks = int(num_tracks)
+    if particleana is not None and opflashana is not None:
+        event_list = np.unique(mgr._particles['event'])
+        print('Found %d events' % len(event_list))
 
     np_result = None
-    for event in range(repeat):
+    for event in event_list:
         sys.stdout.write('Event %d/%d\n' %(event,repeat))
         sys.stdout.flush()
         # Generate samples
-        track_v, pmt_v, tpc_v, raw_tpc_v = mgr.gen_input(num_tracks)
+        if particleana is None or opflashana is None:
+            track_v, pmt_v, tpc_v, raw_tpc_v = mgr.gen_input(num_tracks)
+        else:
+            track_v, pmt_v, tpc_v, raw_tpc_v = mgr.read_input(event)
         # Run matching
         match_v = mgr.match(tpc_v, pmt_v)
 
@@ -298,25 +457,29 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
         #pmt_v = [flashmatch.as_ndarray(pmt) for pmt in pmt_v]
 
         # Either report or store output
-        true_xmin_v = []
-        for idx in range(tpc_v.size()):
-            tpc = tpc_v[idx]
-            pmt = pmt_v[idx]
-            true_xmin_v.append(tpc.min_x() - pmt.time * mgr.det.DriftVelocity())
+        # true_xmin_v = []
+        # for idx in range(tpc_v.size()):
+        #     tpc = tpc_v[idx]
+        #     pmt = pmt_v[idx]
+        #     true_xmin_v.append(tpc.min_x() - pmt.time * mgr.det.DriftVelocity())
 
         # If no analysis output saving option given, return
         if not out_file:
             print('Number of match result',len(match_v))
 
         all_matches = []
-        for match in match_v:
+        for idx, match in enumerate(match_v):
             # FIXME is id same as order in tpc_v? YES
             tpc = tpc_v[match.tpc_id]
             pmt = pmt_v[match.flash_id]
             raw = raw_tpc_v[match.tpc_id]
             truncation   = raw.front().dist(raw.back()) - tpc.front().dist(tpc.back())
-            truncation_frac = truncation / raw.front().dist(raw.back())
-            true_minx = true_xmin_v[match.tpc_id]
+            if raw.front().dist(raw.back()) > 0:
+                truncation_frac = truncation / raw.front().dist(raw.back())
+            else:
+                truncation_frac = -1
+            #if particleana is None or opflashana is None:
+            true_minx = tpc.min_x() #- pmt.time * mgr.det.DriftVelocity() #true_xmin_v[match.flash_id]
             correct_match = tpc.idx == pmt.idx and tpc.idx < len(track_v)
 
             if not out_file:
@@ -352,8 +515,10 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
                 tpc.sum(),
                 np.sum(match.hypothesis),
                 pmt.TotalPE(),
+                pmt.TotalTruePE(),
                 pmt.time,
-                match.duration
+                match.duration,
+                match.num_steps
             ]])
             #)]], dtype=[
             #    ('event', 'i4'),
@@ -386,7 +551,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
             #print(store)
             #print(store.shape)
             all_matches.append(store)
-        if out_file:
+        if out_file and len(all_matches):
             np_event = np.concatenate(all_matches, axis=0)
             if np_result is None:
                 np_result = np_event
@@ -419,10 +584,12 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file=''):
         'qcluster_num_points',
         'matched',
         'qcluster_sum',
-        'hypothesis_sum',
-        'flash_sum',
+        'hypothesis_sum',  # Hypothesis flash sum
+        'flash_sum', # OpFlash Sum
+        'flash_true_sum', # MCFlash sum
         'flash_time',
-        'duration'
+        'duration',
+        'num_steps'
     ]
     np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))
 
@@ -432,14 +599,28 @@ if __name__ == '__main__':
     cfg_file = os.path.join(os.environ['FMATCH_BASEDIR'],
                             'dat', 'flashmatch.cfg')
     num_tracks = None
-    gap = 0.5
-    tol = 1e3
+    particleana, opflashana = None, None
+    outfile = ''
     if len(sys.argv) > 1:
-        for argv in sys.argv[1:]:
-            if argv.isdigit():
-                num_tracks = int(argv)
-            else:
-                cfg_file = sys.argv[1]
+        if len(sys.argv) == 2:
+            num_tracks = int(sys.argv[1])
+        else:
+            particleana = sys.argv[1]
+            opflashana = sys.argv[2]
+            print(particleana, opflashana)
+            if len(sys.argv) > 3:
+                outfile = sys.argv[3]
+        # for argv in sys.argv[1:]:
+        #     if argv.isdigit():
+        #         num_tracks = int(argv)
+        #     else:
+        #         cfg_file = sys.argv[1]
 
     # run demo
-    demo(cfg_file,num_tracks=num_tracks)
+    if num_tracks is not None:
+        demo(cfg_file,num_tracks=num_tracks)
+    else:
+        print('particleana', particleana)
+        print('opflashana', opflashana)
+        print('outfile', outfile)
+        demo(cfg_file, particleana=particleana, opflashana=opflashana, out_file=outfile)

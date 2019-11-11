@@ -2,7 +2,7 @@ import numpy as np
 from .points import scatter_points
 
 
-def plot_flash(toymc, flash, x=None):
+def plot_flash(toymc, flash, x=None, **kwargs):
     """
     Plot a flashmatch::Flash_t
     """
@@ -19,9 +19,9 @@ def plot_flash(toymc, flash, x=None):
         pmt_positions.append(np.array([[pmt_position[0], pmt_position[1], pmt_position[2], flash[pmt]]]))
     pmt_positions = np.vstack(pmt_positions)
     if x is None:
-        return scatter_points(pmt_positions[:, 0:3], color=pmt_positions[:, -1], dim=3, markersize=3)
+        return scatter_points(pmt_positions[:, 0:3], color=pmt_positions[:, -1], dim=3, markersize=3, **kwargs)
     else:
-        return scatter_points(pmt_positions[:, [2, 1]], color=pmt_positions[:, -1], dim=2, markersize=15)
+        return scatter_points(pmt_positions[:, [2, 1]], color=pmt_positions[:, -1], dim=2, markersize=15, **kwargs)
 
 
 def plot_qcluster(qcluster, npts=100):

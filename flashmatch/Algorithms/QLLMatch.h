@@ -72,6 +72,10 @@ namespace flashmatch {
       }
     }
 
+    void OneStep() {
+        _num_steps = _num_steps + 1;
+    }
+
     double CallMinuit(const QCluster_t& tpc,
 		      const Flash_t& pmt,
 		      const bool init_x0=true);
@@ -91,7 +95,7 @@ namespace flashmatch {
     FlashMatch_t OnePMTMatch(const Flash_t &flash);
 
     static QLLMatch* _me;
-    
+
     QLLMode_t _mode;   ///< Minimizer mode
     bool _record;      ///< Boolean switch to record minimizer history
     double _normalize; ///< Noramalize hypothesis PE spectrum
@@ -122,6 +126,7 @@ namespace flashmatch {
 
     TMinuit* _minuit_ptr;
     double _migrad_tolerance;
+    int _num_steps;
 
     double _recox_penalty_threshold;
     double _recoz_penalty_threshold;

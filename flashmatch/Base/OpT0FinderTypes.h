@@ -29,23 +29,30 @@ namespace flashmatch {
   public:
 
     std::vector<double> pe_v; ///< PE distribution over photo-detectors
+    std::vector<double> pe_true_v; ///< PE distribution over photo-detectors of MCFlash
     std::vector<double> pe_err_v; ///< PE value error
     double x,y,z;             ///< Flash position
     double x_err,y_err,z_err; ///< Flash position error
     double time;              ///< Flash timing, a candidate T0
     ID_t idx;                 ///< index from original larlite vector
     /// Default ctor assigns invalid values
-    Flash_t() : pe_v() {
+    Flash_t() : pe_v(), pe_true_v() {
       x = y = z = kINVALID_DOUBLE;
       x_err = y_err = z_err = kINVALID_DOUBLE;
       time = kINVALID_DOUBLE;
       idx = kINVALID_ID;
     }
-    /// Total PE calcualtion
+    /// Total PE calculation
     double TotalPE() const {
       double res=0.;
       for(auto const& v : pe_v) if(v>=0.) res+=v;
       return res;
+    }
+    /// Total true PE calculation
+    double TotalTruePE() const {
+        double res=0.;
+        for (auto const& v : pe_true_v) if (v>=0.) res+=v;
+        return res;
     }
     /// Check validity
     bool Valid(size_t nopdet=0) const {
