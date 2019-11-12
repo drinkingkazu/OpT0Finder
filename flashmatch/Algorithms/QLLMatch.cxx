@@ -309,10 +309,17 @@ namespace flashmatch {
       }
 
       if(_mode == kLLHD) {
-
 	double arg = TMath::Poisson(O,H);
 	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
 	  _current_llhd -= std::log10(arg);
+	  nvalid_pmt += 1;
+	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
+	}
+      }
+      else if(_mode == kWeightedLLHD) {
+	double arg = TMath::Poisson(O,H);
+	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
+	  _current_llhd -= std::log10(arg * sqrt(O));
 	  nvalid_pmt += 1;
 	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
 	}
