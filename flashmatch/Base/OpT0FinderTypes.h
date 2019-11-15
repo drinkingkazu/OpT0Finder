@@ -37,9 +37,9 @@ namespace flashmatch {
     double time_true;         ///< MCFlash timing (if it was matched to a MCFlash)
     double dt_next, dt_prev;
     ID_t idx;                 ///< index from original larlite vector
-    ID_t ROOT_idx;            ///< index in root file
+    //ID_t ROOT_idx;            ///< index in root file
     /// Default ctor assigns invalid values
-    Flash_t() : pe_v(), pe_true_v() {
+    Flash_t() : pe_v(), pe_true_v() , pe_err_v() {
       x = y = z = kINVALID_DOUBLE;
       x_err = y_err = z_err = kINVALID_DOUBLE;
       time = kINVALID_DOUBLE;
@@ -47,7 +47,7 @@ namespace flashmatch {
       dt_next = kINVALID_DOUBLE;
       dt_prev = kINVALID_DOUBLE;
       idx = kINVALID_ID;
-      ROOT_idx = kINVALID_ID;
+      //ROOT_idx = kINVALID_ID;
     }
     /// Total PE calculation
     double TotalPE() const {
@@ -99,12 +99,12 @@ namespace flashmatch {
   class QCluster_t : public std::vector<QPoint_t>{
   public:
     ID_t idx;     ///< index from original larlite vector
-    ID_t ROOT_idx;///< index in original root file
+    //ID_t ROOT_idx;///< index in original root file
     double time;  ///< assumed time w.r.t. trigger for reconstruction
     double time_true; ///< Time from MCTrack information
 
     /// Default constructor
-    QCluster_t() : idx(kINVALID_ID), time(0), time_true(kINVALID_DOUBLE), ROOT_idx(kINVALID_ID) {}
+    QCluster_t() : idx(kINVALID_ID), time(0), time_true(kINVALID_DOUBLE) {}
     ~QCluster_t() {}
 
     /// returns the sum of "q" from QPoint_t
@@ -129,6 +129,12 @@ namespace flashmatch {
 
     inline QCluster_t operator+(const double shift)
     { auto result = (*this); result += shift; return result; }
+
+    inline QCluster_t& operator-=(const double shift)
+    { for(auto& pt : (*this)) pt.x -= shift; return (*this); }
+
+    inline QCluster_t operator-(const double shift)
+    { auto result = (*this); result -= shift; return result; }
 
     inline QCluster_t& operator+=(const QCluster_t& rhs) {
       this->reserve(rhs.size() + this->size());

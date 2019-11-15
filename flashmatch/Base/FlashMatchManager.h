@@ -55,9 +55,9 @@ namespace flashmatch {
     void Emplace(flashmatch::Flash_t&& obj);
 #endif   
     /// Adder of a TPC object
-    void Add(flashmatch::QCluster_t& obj);
+    void Add(flashmatch::QCluster_t obj);
     /// Adder of a TPC object
-    void Add(flashmatch::Flash_t& obj);
+    void Add(flashmatch::Flash_t obj);
 
     /**
        CORE FUNCTION: executes algorithms to find a match of TPC object and flash provided by users. \n

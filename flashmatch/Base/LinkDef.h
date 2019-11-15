@@ -31,6 +31,8 @@
 #pragma link C++ class flashmatch::BaseFlashFilter+;
 #pragma link C++ class flashmatch::BaseFlashMatch+;
 #pragma link C++ class flashmatch::BaseFlashHypothesis+;
+#pragma link C++ class flashmatch::FlashHypothesisFactory+;
+#pragma link C++ class flashmatch::CustomAlgoFactory+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
 

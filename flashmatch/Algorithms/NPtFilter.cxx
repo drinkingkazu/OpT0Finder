@@ -3,7 +3,7 @@
 
 #include "NPtFilter.h"
 
-namespace flashana {
+namespace flashmatch {
   
   static NPtFilterFactory __global_NPtFilterFactory__;
 

@@ -48,7 +48,6 @@ namespace flashmatch {
     int num_div = int(dist / _gap);
 
     ::geoalgo::Vector direct = (pt_1 - pt_2).Dir();
-
     Q_cluster.reserve(Q_cluster.size() + num_div);
 
     for (int div_index = 0; div_index < num_div + 1; div_index++) {
@@ -84,28 +83,27 @@ namespace flashmatch {
       auto const& last_loc(trj[i + 1]);
       LightPath::MakeQCluster(this_loc, last_loc, result);
     }
-
+    FLASH_INFO() << result << std::endl;
+    return result;
+    /*
     // Trimming Q_cluster
     auto const& bbox = DetectorSpecs::GetME().ActiveVolume();
-    double _vol_xmax = bbox.Max()[0];
-    double _vol_ymax = bbox.Max()[1];
-    double _vol_zmax = bbox.Max()[2];
-
-    double _vol_xmin = bbox.Min()[0];
-    double _vol_ymin = bbox.Min()[1];
-    double _vol_zmin = bbox.Min()[2];
-    FLASH_INFO() << result << std::endl;
+    ::geoalgo::Vector pt(3);
+    
     QCluster_t final_result;
     final_result.clear();
+    final_result.reserve(result.size());
     for (size_t idx = 0; idx < result.size(); ++idx) {
+      pt[0] = result[idx].x;
+      pt[1] = result[idx].y;
+      pt[2] = result[idx].z;
+      if(bbox.Contains(pt)) final_result.push_back(pt);
         auto pt = result[idx];
-        if (pt.x >= _vol_xmin && pt.x <= _vol_xmax && pt.y >= _vol_ymin && pt.y <= _vol_ymax && pt.z >= _vol_zmin && pt.z <= _vol_zmax) {
-            final_result.push_back(pt);
-        }
     }
     FLASH_INFO() << final_result << std::endl;
-
+    
     return final_result;
+    */
   }
 
 }

@@ -2,6 +2,7 @@
 #define BASICTOOL_GEOALGO_CXX
 
 #include "GeoAlgo.h"
+#include <cassert>
 
 namespace geoalgo {
 
@@ -180,11 +181,41 @@ namespace geoalgo {
   Trajectory_t GeoAlgo::BoxOverlap(const AABox_t& box, const Trajectory_t& trj) const
   {
 
+    // if empty, return as is
+    if(trj.empty()) return trj;
     // if first & last points inside, then return full trajectory
-    if ( box.Contain(trj[0]) and box.Contain(trj.back()) )
+    if ( box.Contain(trj[0]) && box.Contain(trj.back()) )
       return trj;
 
-    return trj;
+    Trajectory_t result;
+    result.reserve(trj.size());
+    for(size_t i=0; (i+1)<trj.size(); ++i) {
+      auto const& pt0 = trj[i];
+      auto const& pt1 = trj[i];
+      if(box.Contain(pt0)) result.push_back(pt0);
+      else{
+	if(!box.Contain(pt1)) continue;
+	geoalgo::LineSegment seg(pt0,pt1);
+	auto crossing_pts = this->Intersection(box,seg);
+	assert(crossing_pts.size()==1);
+	result.push_back(crossing_pts[0]);
+      }
+    }
+
+    if(box.Contain(trj.back()))
+      result.push_back(trj.back());
+    else if(trj.size()>1) {
+      auto const& pt0 = trj[trj.size()-2];
+      auto const& pt1 = trj.back();
+      if(box.Contain(pt0)) {
+	geoalgo::LineSegment seg(pt0,pt1);
+	auto crossing_pts = this->Intersection(box,seg);
+	assert(crossing_pts.size()==1);
+	result.push_back(crossing_pts[0]);
+      }
+    }
+    
+    return result;
   }
 
   // Ref. RTCD 5.1.8 p. 146
@@ -357,7 +388,7 @@ namespace geoalgo {
     // check value of t
     double t = (a*f-b*c)/d;      
     // if t > 0 && < 1 then the two lines intersect. We are good!
-    if ( (t < 1) and (t > 0) ){
+    if ( (t < 1) && (t > 0) ){
       L1 = hline.Start() + hline.Dir()*s;
       L2 = seg.Start() + (seg.End()-seg.Start())*t;
       return L1._SqDist_(L2);
@@ -784,7 +815,7 @@ namespace geoalgo {
     double f    = d2 * r;
 
     // check if segment is too short
-    if ( (a <= 0) and (e <= 0) ){
+    if ( (a <= 0) && (e <= 0) ){
       //both segments are too short
       t1 = t2 = 0.;
       c1 = s1;

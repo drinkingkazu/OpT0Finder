@@ -1,0 +1,241 @@
+from flashmatch import flashmatch
+from aho import ToyMC
+from rootinput import ROOTInput
+import numpy as np
+
+def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):
+    """
+    Run function for ToyMC
+    ---------
+    Arguments
+      cfg_file:   string for the location of a config file
+      repeat:     int, number of times to run the toy MC simulation
+      out_file:   string for an output analysis csv file path (optional)
+      num_tracks: int for number of tracks to be generated (optional)
+    """
+    # create & configure flash match manager
+    cfg = flashmatch.CreatePSetFromFile(cfg_file)
+    # dump config
+    sys.stdout.write(cfg.dump())
+    sys.stdout.flush()
+
+    # configure
+    mgr = flashmatch.FlashMatchManager()
+    mgr.Configure(cfg)
+    # override number of tracks to simulate
+    if num_tracks is not None:
+        num_tracks = int(num_tracks)
+
+    event_list,ihandler = None,None
+    if particleana is None and opflashana is None:
+        ihandler = ToyMC(cfg_file)
+        event_list = range(repeat)
+    else:
+        ihandler = ROOTInput(opflashana,particleana,cfg_file)
+        event_list = np.unique(ihandler._particles['event'])
+        num_tracks = None
+        print('Found %d events' % len(event_list))
+
+    np_result = None
+    for event in event_list:
+        sys.stdout.write('Event %d/%d\n' %(event,len(event_list)))
+        sys.stdout.flush()
+        # Generate samples
+        match_input = ihandler.make_flashmatch_input(event if num_tracks is None else num_tracks)
+        # Register for matching
+        mgr.Reset()
+        for pmt in match_input.flash_v:
+            mgr.Add(pmt)
+        for tpc in match_input.qcluster_v:
+            mgr.Add(tpc)
+        # Run matching
+        match_v = mgr.Match()
+
+        # If no analysis output saving option given, return
+        if not out_file:
+            print('Number of match result',len(match_v))
+
+        all_matches = []
+        for idx, match in enumerate(match_v):
+            tpc = match_input.qcluster_v[match.tpc_id]
+            pmt = match_input.flash_v[match.flash_id]
+            raw = match_input.raw_qcluster_v[match.tpc_id]
+            truncation   = raw.front().dist(raw.back()) - tpc.front().dist(tpc.back())
+            if raw.front().dist(raw.back()) > 0:
+                truncation_frac = truncation / raw.front().dist(raw.back())
+            else:
+                truncation_frac = -1
+            #if particleana is None or opflashana is None:
+            true_minx = tpc.min_x() #- pmt.time * mgr.det.DriftVelocity() #true_xmin_v[match.flash_id]
+            true_maxx = tpc.max_x()
+            reco_maxx = match.tpc_point.x + (tpc.max_x() - tpc.min_x())
+            correct_match = (tpc.idx,pmt.idx) in match_input.true_match
+
+            if not out_file:
+                print('Match ID',idx)
+                msg = '  TPC/PMT IDs %d/%d Correct? %s Score %f Min-X %f PE sum %f ... true Min-X %f true PE sum %f truncation %f (%f%%)'
+                msg = msg % (tpc.idx,pmt.idx,correct_match,match.score,match.tpc_point.x,np.sum(match.hypothesis),
+                             true_minx,np.sum(pmt.pe_v),truncation,truncation_frac*100.)
+                print(msg)
+                continue
+            store = np.array([[
+                event,
+                match.score,
+                pmt.idx,
+                tpc.idx,
+                true_minx,
+                true_maxx,
+                reco_maxx,
+                match.tpc_point.x,
+                match.tpc_point.y,
+                match.tpc_point.z,
+                tpc.front().x,
+                tpc.front().y,
+                tpc.front().z,
+                tpc.back().x,
+                tpc.back().y,
+                tpc.back().z,
+                raw.front().x,
+                raw.front().y,
+                raw.front().z,
+                raw.back().x,
+                raw.back().y,
+                raw.back().z,
+                truncation,
+                truncation_frac,
+                len(tpc),
+                int(correct_match),
+                tpc.sum(),
+                tpc.length(),
+                tpc.time_true,
+                np.sum(match.hypothesis),
+                pmt.TotalPE(),
+                pmt.TotalTruePE(),
+                pmt.time,
+                pmt.time_true,
+                pmt.dt_prev,
+                pmt.dt_next,
+                match.duration,
+                match.num_steps,
+                match.minimizer_min_x,
+                match.minimizer_max_x
+            ]])
+            #)]], dtype=[
+            #    ('event', 'i4'),
+            #    ('score', 'f4'),
+            #    ('true_min_x', 'f4'),
+            #    ('tpc_point_x', 'f4'),
+            #    ('tpc_point_y', 'f4'),
+            #    ('tpc_point_z', 'f4'),
+            #    ('start_point_x', 'f4'),
+            #    ('start_point_y', 'f4'),
+            #    ('start_point_z', 'f4'),
+            #    ('end_point_x', 'f4'),
+            #    ('end_point_y', 'f4'),
+            #    ('end_point_z', 'f4'),
+            #    ('raw_start_point_x', 'f4'),
+            #    ('raw_start_point_y', 'f4'),
+            #    ('raw_start_point_z', 'f4'),
+            #    ('raw_end_point_x', 'f4'),
+            #    ('raw_end_point_y', 'f4'),
+            #    ('raw_end_point_z', 'f4'),
+            #    ('truncation', 'f4'),
+            #    ('truncation_fraction', 'f4'),
+            #    ('qcluster_num_points', 'f4'),
+            #    ('matched', 'B'),
+            #    ('qcluster_sum', 'f4'),
+            #    ('flash_sum', 'f4'),
+            #    ('flash_time', 'f4'),
+            #    ('duration', 'f4')
+            #])
+            #print(store)
+            #print(store.shape)
+            all_matches.append(store)
+        if out_file and len(all_matches):
+            np_event = np.concatenate(all_matches, axis=0)
+            if np_result is None:
+                np_result = np_event
+            else:
+                np_result = np.concatenate([np_result,np_event],axis=0)
+    if not out_file:
+        return
+    #print(x.shape)
+    names = [
+        'event',
+        'score',
+        'flash_idx',
+        'track_idx',
+        'true_min_x',
+        'true_max_x',
+        'reco_max_x',
+        'tpc_point_x',
+        'tpc_point_y',
+        'tpc_point_z',
+        'start_point_x',
+        'start_point_y',
+        'start_point_z',
+        'end_point_x',
+        'end_point_y',
+        'end_point_z',
+        'raw_start_point_x',
+        'raw_start_point_y',
+        'raw_start_point_z',
+        'raw_end_point_x',
+        'raw_end_point_y',
+        'raw_end_point_z',
+        'truncation',
+        'truncation_fraction',
+        'qcluster_num_points',
+        'matched',
+        'qcluster_sum',
+        'qcluster_length',
+        'qcluster_time_true',
+        'hypothesis_sum',  # Hypothesis flash sum
+        'flash_sum', # OpFlash Sum
+        'flash_true_sum', # MCFlash sum
+        'flash_time',
+        'flash_time_true',
+        'flash_dt_prev',
+        'flash_dt_next',
+        'duration',
+        'num_steps',
+        'minimizer_min_x',
+        'minimizer_max_x'
+    ]
+    np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))
+
+if __name__ == '__main__':
+    import os,sys
+
+    cfg_file = os.path.join(os.environ['FMATCH_BASEDIR'],
+                            'dat', 'flashmatch.cfg')
+    num_tracks = 5
+    particleana, opflashana = None, None
+    outfile = ''
+    if len(sys.argv) > 1:
+        if len(sys.argv) == 2:
+            num_tracks = int(sys.argv[1])
+        else:
+            num_tracks = None
+            particleana = sys.argv[1]
+            opflashana = sys.argv[2]
+            print(particleana, opflashana)
+            if len(sys.argv) > 3:
+                outfile = sys.argv[3]
+        # for argv in sys.argv[1:]:
+        #     if argv.isdigit():
+        #         num_tracks = int(argv)
+        #     else:
+        #         cfg_file = sys.argv[1]
+
+    # run demo
+    if num_tracks is not None:
+        demo(cfg_file,num_tracks=num_tracks)
+    else:
+        print('particleana', particleana)
+        print('opflashana', opflashana)
+        print('outfile', outfile)
+        demo(cfg_file, particleana=particleana, opflashana=opflashana, out_file=outfile)
+    
+
+

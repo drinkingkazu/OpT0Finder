@@ -184,13 +184,13 @@ namespace flashmatch {
     return _custom_alg_m[name];
   }
 
-  void FlashMatchManager::Add(flashmatch::QCluster_t& obj)
+  void FlashMatchManager::Add(flashmatch::QCluster_t obj)
   { _tpc_object_v.push_back(obj); }
 
   void FlashMatchManager::Emplace(flashmatch::QCluster_t&& obj)
   { _tpc_object_v.emplace_back(std::move(obj)); }
 
-  void FlashMatchManager::Add(flashmatch::Flash_t& obj)
+  void FlashMatchManager::Add(flashmatch::Flash_t obj)
   {
     if(!obj.Valid()) throw OpT0FinderException("Invalid Flash_t object cannot be registered!");
     _flash_v.push_back(obj);
@@ -288,7 +288,7 @@ namespace flashmatch {
         if (res.score <= 0) continue;
 
         // Else we store this match. Assign TPC & flash index info
-        res.tpc_id = tpc_index_v[tpc_index];//_index;
+        res.tpc_id   = tpc_index_v[tpc_index];//_index;
         res.flash_id = flash_index;//_index;
         res.duration = duration.count();
 

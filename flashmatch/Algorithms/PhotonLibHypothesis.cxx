@@ -38,12 +38,15 @@ namespace flashmatch {
     size_t n_pmt = DetectorSpecs::GetME().NOpDets();//n_pmt returns 0 now, needs to be fixed
     if(flash.pe_v.empty()) flash.pe_v.resize(n_pmt);
     if(flash.pe_err_v.empty()) flash.pe_err_v.resize(n_pmt);
+    if(flash.pe_true_v.empty()) flash.pe_true_v.resize(n_pmt);
 
-    assert(flash.pe_v.size()     == n_pmt);
-    assert(flash.pe_err_v.size() == n_pmt);
+    assert(flash.pe_v.size()      == n_pmt);
+    assert(flash.pe_true_v.size() == n_pmt);
+    assert(flash.pe_err_v.size()  == n_pmt);
 
     for (auto& v : flash.pe_v     ) v = 0;
     for (auto& v : flash.pe_err_v ) v = 0;
+    for (auto& v : flash.pe_true_v ) v = 0;
 
     auto det = DetectorSpecs::GetME();
 
@@ -70,7 +73,7 @@ namespace flashmatch {
       for( size_t ipt = start_pt; ipt < start_pt + num_pts; ++ipt) {
 	auto const& pt = trk[ipt];
 	vox_id = vox_def.GetVoxelID(pt.x,pt.y,pt.z);
-  if (vox_id < 0) continue;
+	if (vox_id < 0) continue;
 	auto const& vis_pmt = lib_data[vox_id];
 	for ( size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
 	  local_pe_v[ipmt] += pt.q * vis_pmt[ipmt];
