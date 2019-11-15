@@ -72,8 +72,10 @@ namespace flashmatch {
       }
     }
 
-    void OneStep() {
+    void OneStep(const double x) {
         _num_steps = _num_steps + 1;
+        if (x < _minimizer_min_x) _minimizer_min_x = x;
+        if (x > _minimizer_max_x) _minimizer_max_x = x;
     }
 
     double CallMinuit(const QCluster_t& tpc,
@@ -117,6 +119,8 @@ namespace flashmatch {
     std::vector<double> _minimizer_record_chi2_v; ///< Minimizer record chi2 value
     std::vector<double> _minimizer_record_llhd_v; ///< Minimizer record llhd value
     std::vector<double> _minimizer_record_x_v;    ///< Minimizer record X values
+    double _minimizer_min_x;
+    double _minimizer_max_x;
 
     double _reco_x_offset;     ///< reconstructed X offset (from wire-plane to min-x point)
     double _reco_x_offset_err; ///< reconstructed X offset w/ error
@@ -127,6 +131,7 @@ namespace flashmatch {
     TMinuit* _minuit_ptr;
     double _migrad_tolerance;
     int _num_steps;
+    double _offset;
 
     double _recox_penalty_threshold;
     double _recoz_penalty_threshold;
