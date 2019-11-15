@@ -34,6 +34,7 @@ namespace flashmatch {
     _pe_observation_threshold = pset.get<double>("PEObservationThreshold", 0.0);
     _pe_hypothesis_threshold  = pset.get<double>("PEHypothesisThreshold", 0.0);
     _migrad_tolerance         = pset.get<double>("MIGRADTolerance", 0.1);
+    _offset                   = pset.get<double>("Offset", 0.0);
 
     _penalty_threshold_v = pset.get<std::vector<double> >("PEPenaltyThreshold");
     _penalty_value_v = pset.get<std::vector<double> >("PEPenaltyValue");
@@ -78,10 +79,11 @@ namespace flashmatch {
 
     auto res1 = PESpectrumMatch(pt_v,flash,true);
     auto res2 = PESpectrumMatch(pt_v,flash,false);
-    FLASH_INFO() << "Using   mid-x-init ... maximized 1/param Score=" << res1.score << " @ X=" << res1.tpc_point.x << " [cm]" << std::endl;
+    //FLASH_INFO() << "Using   mid-x-init ... maximized 1/param Score=" << res1.score << " @ X=" << res1.tpc_point.x << " [cm]" << std::endl;
     FLASH_INFO() << "Without mid-x-init ... maximized 1/param Score=" << res2.score << " @ X=" << res2.tpc_point.x << " [cm]" << std::endl;
 
     auto res = (res1.score > res2.score ? res1 : res2);
+    //auto res = res2;
     /*
     if(res.score < _onepmt_score_threshold) {
 
@@ -100,6 +102,8 @@ namespace flashmatch {
     FlashMatch_t res;
     res.score=-1;
     res.num_steps = 1;
+    res.minimizer_min_x = 0;
+    res.minimizer_max_x = 0;
     // Check if pesum threshold condition is met to use this method
     double pesum = flash.TotalPE();
     if(pesum < _onepmt_pesum_threshold) {
@@ -171,6 +175,8 @@ namespace flashmatch {
     // Estimate position
     FlashMatch_t res;
     res.num_steps = _num_steps;
+    res.minimizer_min_x = _minimizer_min_x;
+    res.minimizer_max_x = _minimizer_max_x;
     if (std::isnan(_qll)) return res;
 
     res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = 0;
@@ -380,7 +386,7 @@ namespace flashmatch {
     //std::cout << "Duration QLL = " << duration.count() << "us" << std::endl;
 
     QLLMatch::GetME()->Record(Xval[0]);
-    QLLMatch::GetME()->OneStep();
+    QLLMatch::GetME()->OneStep(Xval[0]);
 
     return;
   }
@@ -426,10 +432,13 @@ namespace flashmatch {
     _minimizer_record_llhd_v.clear();
     _minimizer_record_x_v.clear();
     _num_steps = 0;
+    _minimizer_min_x = std::numeric_limits<double>::max();
+    _minimizer_max_x = -std::numeric_limits<double>::max();
+
 
     if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
 
-    double reco_x = _vol_xmin + 10;
+    double reco_x = _vol_xmin + _offset; // FIXME
     if (!init_x0) {
       //reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
       // Assume this is the right flash... then

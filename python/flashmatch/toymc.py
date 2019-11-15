@@ -27,7 +27,8 @@ class ToyMC:
             # #particles = root2array(particleana, 'largeant_particletree')
             # for i in range(len(particleana_list)):
             self._particles = root2array(particleana, 'mctracktree')
-            self._opflash = root2array(opflashana, 'opflash_flashtree')
+            self._opflash = root2array(opflashana, self._tree_name)
+            #self._opflash = root2array(opflashana, 'cheatflash_flashtree')
 
     def configure(self,cfg_file):
         self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
@@ -60,6 +61,11 @@ class ToyMC:
         self._min_flash_pe = float(pset.get("MinFlashPE"))
         # Truncate TPC tracks (readout effect)
         self._truncate_tpc = int(pset.get("TruncateTPC"))
+        # Time window to match MCFlash and MCTrack
+        self._matching_window = float(pset.get("MatchingWindow"))
+        # Whether to exclude flashes too close to each other
+        self._exclude_reflashing = int(pset.get("ExcludeReflashing"))
+        self._tree_name = str(pset.get("TreeName"))
         # Set seed if there is any specified
         if pset.contains_value('NumpySeed'):
             seed = int(pset.get('NumpySeed'))
@@ -111,9 +117,12 @@ class ToyMC:
         match_id = 0
         true_track_v = []
         print('Loaded %d tracks' % num_tracks)
+        print('drift velocity = ', self.det.DriftVelocity())
+        track_root_idx, flash_root_idx = -1, -1
         for i in range(num_tracks):
             flash = None
             if i < len(opflash):
+                flash_root_idx += 1
                 flash = flashmatch.Flash_t()
                 #print(len(opflash[i]['pe_v']))
                 for x in opflash[i]['pe_v'][:180]:  # FIXME hardcoded NOpDets
@@ -126,14 +135,20 @@ class ToyMC:
                 flash.z = opflash[i]['z']
                 flash.xerr, flash.yerr, flash.zerr = 0., 0., 0.
                 flash.time = opflash[i]['time']
+                flash.time_true =  opflash[i]['time_true']
                 flash.idx = i
+                flash.ROOT_idx = flash_root_idx
+
+                #print('flash time', opflash[i]['time'], opflash[i]['time_true'])
 
             #raw_qcluster = flashmatch.QCluster_t()
             #raw_qcluster.time = particles[i]['time_v'][0]
             #raw_qcluster.idx = i
             track, qcluster, raw_qcluster = None, None, None
             if i < len(particles):
+                track_root_idx += 1
                 track = geoalgo.Trajectory(len(particles[i]['x_v']), 3)
+                track_time = 10000000000000000  # will be in ns
                 for j in range(len(particles[i]['x_v'])):
                     # print(particles[i]['time_v'][j])
                     # qpoint = flashmatch.QPoint_t(
@@ -149,32 +164,15 @@ class ToyMC:
                         particles[i]['y_v'][j],
                         particles[i]['z_v'][j]
                     )
+                    if particles[i]['time_v'][j] < track_time:
+                        track_time = particles[i]['time_v'][j]
                 if track.size() == 0:
                     track = None
                 if track is not None:
-                    #print('track', track)
                     raw_qcluster = self.make_qcluster(track)
-
-                    # flash = self.make_flash(raw_qcluster)
-                    # ftime,dx = xt_v[i]
-                    #ftime,dx = particles[i]['time_v'][0], particles[i]['time_v'][0] * self.det.DriftVelocity()
-                    # flash.time = ftime
-                    # print('opflash vs flash pe')
-                    # print(len(opflash[i]['pe_v']), len(flash.pe_v))
-                    # for k in range(180):
-                    #     if opflash[i]['pe_v'][k] > 0:
-                    #         diff = (opflash[i]['pe_v'][k] - flash.pe_v[k]) / opflash[i]['pe_v'][k]
-                    #     else:
-                    #         diff = -1
-                    #     print(diff, opflash[i]['pe_v'][k], flash.pe_v[k])
-
-                    qcluster = raw_qcluster #+ dx
-                    # track = geoalgo.Trajectory(2, 3)
-                    # track[0] = geoalgo.Vector(particles[i]['start_x'], particles[i]['start_y'], particles[i]['start_z'])
-                    # track[1] = geoalgo.Vector(particles[i]['end_x'], particles[i]['end_y'], particles[i]['end_z'])
-                    # raw_qcluster = self.make_qcluster(track)
-                    # qcluster = raw_qcluster + particles[i]['start_t'] * self.det.DriftVelocity()
-
+                    raw_qcluster.time_true = track_time*1e-3
+                    raw_qcluster.ROOT_idx = track_root_idx
+                    qcluster = raw_qcluster
                     # Drop QCluster points that are outside the recording range
                     if self._truncate_tpc:
                         qcluster.drop(min_tpcx,max_tpcx)
@@ -208,7 +206,54 @@ class ToyMC:
         for orphan in orphan_raw:
             orphan.idx = raw_tpc_v.size()
             raw_tpc_v.push_back(orphan)
-        print("orphans", len(orphan_pmt), len(orphan_tpc), len(orphan_raw))
+
+        # compute dt to previous and next flash
+        for pmt in pmt_v:
+            for pmt2 in pmt_v:
+                if pmt2.idx != pmt.idx:
+                    if pmt2.time < pmt.time and abs(pmt2.time - pmt.time) < pmt.dt_prev:
+                        pmt.dt_prev = abs(pmt2.time - pmt.time)
+                    if pmt2.time > pmt.time and abs(pmt.time - pmt2.time) < pmt.dt_next:
+                        pmt.dt_next = abs(pmt.time - pmt2.time)
+            #print(pmt.time, pmt.dt_prev, pmt.dt_next)
+
+        # Exclude flashes too close apart
+        if self._exclude_reflashing:
+            new_pmt_v = flashmatch.FlashArray_t()
+            dt_threshold = 15 # us
+            for pmt in pmt_v:
+                if pmt.dt_prev > dt_threshold and pmt.dt_next > dt_threshold:
+                    new_pmt_v.push_back(pmt)
+                else:
+                    print('dropping', pmt.dt_prev, pmt.dt_next)
+            pmt_v = new_pmt_v
+
+        # Assign idx now based on true timings
+        for pmt in pmt_v:
+            pmt.idx = 0
+        for tpc in tpc_v:
+            tpc.idx = 0
+        global_idx = 1
+        time_threshold = self._matching_window # 100ns
+        for pmt in pmt_v:
+            for tpc in tpc_v:
+                if tpc.idx == 0 and abs(pmt.time_true - tpc.time_true) < time_threshold:
+                    pmt.idx = global_idx
+                    tpc.idx = global_idx
+                    print(global_idx, pmt.time_true, tpc.time_true, tpc.min_x())
+                    global_idx += 1
+
+        for tpc in tpc_v:
+            if tpc.idx == 0:
+                tpc.idx = global_idx
+                global_idx += 1
+        for pmt in pmt_v:
+            if pmt.idx == 0:
+                pmt.idx = global_idx
+                global_idx += 1
+        for i, tpc in enumerate(raw_tpc_v):
+            tpc.idx = tpc_v[i].idx
+
         return true_track_v, pmt_v, tpc_v, raw_tpc_v
 
     # Create a set ot TPC (flashmatch::QCluster) and PMT (flashmatch::Flash_t) interactions
@@ -443,7 +488,7 @@ def demo(cfg_file,repeat=17,num_tracks=None,out_file='',particleana=None,opflash
 
     np_result = None
     for event in event_list:
-        sys.stdout.write('Event %d/%d\n' %(event,repeat))
+        sys.stdout.write('Event %d/%d\n' %(event,len(event_list)))
         sys.stdout.flush()
         # Generate samples
         if particleana is None or opflashana is None:
@@ -480,19 +525,25 @@ def demo(cfg_file,repeat=17,num_tracks=None,out_file='',particleana=None,opflash
                 truncation_frac = -1
             #if particleana is None or opflashana is None:
             true_minx = tpc.min_x() #- pmt.time * mgr.det.DriftVelocity() #true_xmin_v[match.flash_id]
+            true_maxx = tpc.max_x()
+            reco_maxx = match.tpc_point.x + (tpc.max_x() - tpc.min_x())
             correct_match = tpc.idx == pmt.idx and tpc.idx < len(track_v)
 
             if not out_file:
                 print('Match ID',idx)
                 msg = '  TPC/PMT IDs %d/%d Score %f Min-X %f PE sum %f ... true Min-X %f true PE sum %f truncation %f (%f%%)'
-                msg = msg % (match.tpc_id,match.flash_id,match.score,match.tpc_point.x,np.sum(match.hypothesis),
+                msg = msg % (tpc.idx,pmt.idx,match.score,match.tpc_point.x,np.sum(match.hypothesis),
                              true_minx,np.sum(pmt.pe_v),truncation,truncation_frac*100.)
                 print(msg)
                 continue
             store = np.array([[
                 event,
                 match.score,
+                pmt.ROOT_idx,
+                tpc.ROOT_idx,
                 true_minx,
+                true_maxx,
+                reco_maxx,
                 match.tpc_point.x,
                 match.tpc_point.y,
                 match.tpc_point.z,
@@ -513,12 +564,19 @@ def demo(cfg_file,repeat=17,num_tracks=None,out_file='',particleana=None,opflash
                 len(tpc),
                 int(tpc.idx == pmt.idx),
                 tpc.sum(),
+                tpc.length(),
+                tpc.time_true,
                 np.sum(match.hypothesis),
                 pmt.TotalPE(),
                 pmt.TotalTruePE(),
                 pmt.time,
+                pmt.time_true,
+                pmt.dt_prev,
+                pmt.dt_next,
                 match.duration,
-                match.num_steps
+                match.num_steps,
+                match.minimizer_min_x,
+                match.minimizer_max_x
             ]])
             #)]], dtype=[
             #    ('event', 'i4'),
@@ -563,7 +621,11 @@ def demo(cfg_file,repeat=17,num_tracks=None,out_file='',particleana=None,opflash
     names = [
         'event',
         'score',
+        'flash_ROOT_idx',
+        'track_ROOT_idx',
         'true_min_x',
+        'true_max_x',
+        'reco_max_x',
         'tpc_point_x',
         'tpc_point_y',
         'tpc_point_z',
@@ -584,12 +646,19 @@ def demo(cfg_file,repeat=17,num_tracks=None,out_file='',particleana=None,opflash
         'qcluster_num_points',
         'matched',
         'qcluster_sum',
+        'qcluster_length',
+        'qcluster_time_true',
         'hypothesis_sum',  # Hypothesis flash sum
         'flash_sum', # OpFlash Sum
         'flash_true_sum', # MCFlash sum
         'flash_time',
+        'flash_time_true',
+        'flash_dt_prev',
+        'flash_dt_next',
         'duration',
-        'num_steps'
+        'num_steps',
+        'minimizer_min_x',
+        'minimizer_max_x'
     ]
     np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))
 
