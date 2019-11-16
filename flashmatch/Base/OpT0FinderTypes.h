@@ -34,13 +34,20 @@ namespace flashmatch {
     double x,y,z;             ///< Flash position
     double x_err,y_err,z_err; ///< Flash position error
     double time;              ///< Flash timing, a candidate T0
+    double time_true;         ///< MCFlash timing (if it was matched to a MCFlash)
+    double dt_next, dt_prev;
     ID_t idx;                 ///< index from original larlite vector
+    ID_t ROOT_idx;            ///< index in root file
     /// Default ctor assigns invalid values
     Flash_t() : pe_v(), pe_true_v() {
       x = y = z = kINVALID_DOUBLE;
       x_err = y_err = z_err = kINVALID_DOUBLE;
       time = kINVALID_DOUBLE;
+      time_true = kINVALID_DOUBLE;
+      dt_next = kINVALID_DOUBLE;
+      dt_prev = kINVALID_DOUBLE;
       idx = kINVALID_ID;
+      ROOT_idx = kINVALID_ID;
     }
     /// Total PE calculation
     double TotalPE() const {
@@ -92,10 +99,12 @@ namespace flashmatch {
   class QCluster_t : public std::vector<QPoint_t>{
   public:
     ID_t idx;     ///< index from original larlite vector
+    ID_t ROOT_idx;///< index in original root file
     double time;  ///< assumed time w.r.t. trigger for reconstruction
+    double time_true; ///< Time from MCTrack information
 
     /// Default constructor
-    QCluster_t() : idx(kINVALID_ID), time(0) {}
+    QCluster_t() : idx(kINVALID_ID), time(0), time_true(kINVALID_DOUBLE), ROOT_idx(kINVALID_ID) {}
     ~QCluster_t() {}
 
     /// returns the sum of "q" from QPoint_t
@@ -110,6 +119,10 @@ namespace flashmatch {
     /// minimum x
     inline double min_x() const
     { double x=flashmatch::kINVALID_DOUBLE; for(auto const& pt : (*this)) x = std::min(x,pt.x); return x; }
+
+    /// maximum x
+    inline double max_x() const
+    { double x=flashmatch::kINVALID_DOUBLE; for(auto const& pt : (*this)) x = std::max(x,pt.x); return x; }
 
     inline QCluster_t& operator+=(const double shift)
     { for(auto& pt : (*this)) pt.x += shift; return (*this); }
@@ -149,6 +162,8 @@ namespace flashmatch {
     QPoint_t tpc_point_err; ///< error on the estimated point
 	unsigned int duration;  ///< Computation time of the match algorithm on this match (ns)
     unsigned int num_steps; ///< Number of MIGRAD steps
+    double minimizer_min_x;
+    double minimizer_max_x;
     std::vector<double> hypothesis;       ///< Hypothesis flash object
     /// Default ctor assigns invalid values
     FlashMatch_t() : hypothesis()
