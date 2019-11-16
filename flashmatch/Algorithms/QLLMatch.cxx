@@ -21,7 +21,7 @@ namespace flashmatch {
   void MIN_vtx_qll(Int_t &, Double_t *, Double_t &, Double_t *, Int_t);
 
   QLLMatch::QLLMatch(const std::string name)
-    : BaseFlashMatch(name), _mode(kChi2), _record(false), _normalize(false), _minuit_ptr(nullptr)
+    : BaseFlashMatch(name), _mode(kChi2), _record(false), _normalize(false), _poisson("QLLMatch_poisson","TMath::Poisson(x,y)"), _minuit_ptr(nullptr)
   { _current_llhd = _current_chi2 = -1.0; }
 
   QLLMatch::QLLMatch()
@@ -31,8 +31,8 @@ namespace flashmatch {
     _record = pset.get<bool>("RecordHistory");
     _normalize = pset.get<bool>("NormalizeHypothesis");
     _mode   = (QLLMode_t)(pset.get<unsigned short>("QLLMode"));
-    _pe_observation_threshold = pset.get<double>("PEObservationThreshold", 0.0);
-    _pe_hypothesis_threshold  = pset.get<double>("PEHypothesisThreshold", 0.0);
+    _pe_observation_threshold = pset.get<double>("PEObservationThreshold", 1.e-6);
+    _pe_hypothesis_threshold  = pset.get<double>("PEHypothesisThreshold", 1.e-6);
     _migrad_tolerance         = pset.get<double>("MIGRADTolerance", 0.1);
 
     _penalty_threshold_v = pset.get<std::vector<double> >("PEPenaltyThreshold");
@@ -283,7 +283,7 @@ namespace flashmatch {
       throw OpT0FinderException("Cannot compute QLL for unmatched length!");
 
     double O, H, Error;
-
+    const double epsilon = 1.e-6;
     for (size_t pmt_index = 0; pmt_index < hypothesis.pe_v.size(); ++pmt_index) {
 
       O = measurement.pe_v[pmt_index]; // observation
@@ -291,7 +291,7 @@ namespace flashmatch {
 
       if( H < 0 ) throw OpT0FinderException("Cannot have hypothesis value < 0!");
 
-      if(O < 0) {
+      if(O < _pe_observation_threshold) {
         if (!_penalty_value_v.empty()) {
           O = _penalty_value_v[pmt_index];
         }
@@ -299,7 +299,7 @@ namespace flashmatch {
           O = _pe_observation_threshold;
         }
       }
-      if (H <= _pe_hypothesis_threshold) {
+      if (H < _pe_hypothesis_threshold) {
         if(!_penalty_threshold_v.empty()) {
           H = _penalty_threshold_v[pmt_index];
         }
@@ -309,20 +309,37 @@ namespace flashmatch {
       }
 
       if(_mode == kLLHD) {
-	double arg = TMath::Poisson(O,H);
-	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
+	assert(H>0);
+	double arg = TMath::Poisson(O,H) + epsilon;
+	if(!std::isnan(arg) && !std::isinf(arg)) {
 	  _current_llhd -= std::log10(arg);
 	  nvalid_pmt += 1;
 	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
 	}
       }
       else if(_mode == kWeightedLLHD) {
-	double arg = TMath::Poisson(O,H);
-	if(arg > 0. && !std::isnan(arg) && !std::isinf(arg)) {
-	  _current_llhd -= std::log10(arg * sqrt(O));
+	assert(H>0);
+	double arg = TMath::Poisson(O,H) + epsilon;
+	if(!std::isnan(arg) && !std::isinf(arg)) {
+	  _current_llhd -= std::log10(arg * sqrt(std::max(H,epsilon)));
 	  nvalid_pmt += 1;
 	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
 	}
+      }else if(_mode == kIntegralLLHD) {
+	double hmin = H-0.5;
+	double hmax = H+0.5;
+	double omin = O-sqrt(O);
+	double omax = O+sqrt(O);
+	if(hmin<0.) hmin = 0.;
+	if(omin<0.) omin = 0.;
+	if(hmax<hmin+1) hmax = hmin+1;
+	if(omax<omin+1) omax = omin+1;
+	double arg = _poisson.Integral(omin,omax,hmin,hmax) + epsilon;
+	if(!std::isnan(arg) && !std::isinf(arg)) {
+	  _current_llhd -= std::log10(arg);
+	  nvalid_pmt += 1;
+	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
+	}	
       }else if (_mode == kSimpleLLHD) {
 
 	double arg = (H - O * std::log(H));
