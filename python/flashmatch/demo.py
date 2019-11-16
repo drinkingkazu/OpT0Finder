@@ -1,6 +1,6 @@
 from flashmatch import flashmatch
-from aho import ToyMC
-from rootinput import ROOTInput
+from .toymc import ToyMC
+from .rootinput import ROOTInput
 import numpy as np
 
 def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):

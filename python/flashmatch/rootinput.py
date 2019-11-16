@@ -1,7 +1,7 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
-from utils import FlashMatchInput
+from .utils import FlashMatchInput
 
 class ROOTInput:
     def __init__(self, opflashana, particleana, cfg_file=None):

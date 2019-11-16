@@ -3,5 +3,5 @@ from ROOT import flashmatch, phot, sim, geoalgo
 c=flashmatch.PSet
 c=flashmatch.load_pyutil
 from .demo import demo
-from .aho import ToyMC
+from .toymc import ToyMC
 from .rootinput import ROOTInput

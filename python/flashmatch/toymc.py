@@ -1,7 +1,7 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
-from utils import FlashMatchInput
+from .utils import FlashMatchInput
 
 class ToyMC:
     def __init__(self, cfg_file=None):
