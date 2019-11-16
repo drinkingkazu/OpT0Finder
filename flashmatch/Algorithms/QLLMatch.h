@@ -18,6 +18,7 @@
 #include "flashmatch/Base/FlashMatchFactory.h"
 #include "flashmatch/Base/BaseFlashMatch.h"
 #include <TMinuit.h>
+#include <TF2.h>
 namespace flashmatch {
   /**
      \class QLLMatch
@@ -28,7 +29,7 @@ namespace flashmatch {
 
   public:
 
-    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD };
+    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD, kIntegralLLHD };
 
   private:
     /// Valid ctor hidden (singleton)
@@ -121,6 +122,8 @@ namespace flashmatch {
     double _reco_x_offset;     ///< reconstructed X offset (from wire-plane to min-x point)
     double _reco_x_offset_err; ///< reconstructed X offset w/ error
     double _qll;               ///< Minimizer return value
+
+    TF2 _poisson;
 
     bool _converged;
 
