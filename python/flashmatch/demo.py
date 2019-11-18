@@ -66,8 +66,11 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
             else:
                 truncation_frac = -1
             #if particleana is None or opflashana is None:
-            true_minx = tpc.min_x() #- pmt.time * mgr.det.DriftVelocity() #true_xmin_v[match.flash_id]
+            true_minx = tpc.min_x()  #true_xmin_v[match.flash_id]
             true_maxx = tpc.max_x()
+            if (particleana is None and opflashana is None) or (hasattr(ihandler, '_shift_tpc') and ihandler._shift_tpc):
+                true_minx -= - pmt.time * ihandler.det.DriftVelocity()
+                true_maxx -= - pmt.time * ihandler.det.DriftVelocity()
             reco_maxx = match.tpc_point.x + (tpc.max_x() - tpc.min_x())
             correct_match = (pmt.idx,tpc.idx) in match_input.true_match
 
@@ -236,6 +239,3 @@ if __name__ == '__main__':
         print('opflashana', opflashana)
         print('outfile', outfile)
         demo(cfg_file, particleana=particleana, opflashana=opflashana, out_file=outfile)
-    
-
-
