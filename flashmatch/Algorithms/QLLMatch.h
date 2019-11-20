@@ -102,6 +102,9 @@ namespace flashmatch {
     QLLMode_t _mode;   ///< Minimizer mode
     bool _record;      ///< Boolean switch to record minimizer history
     double _normalize; ///< Noramalize hypothesis PE spectrum
+    bool _check_touching_track; ///< Whether to match immediately touching track with flash if timing coincides.
+    bool _extend_tracks; ///< Whether to extend tracks when minimizer reaches the boundary.
+    double _touching_track_window; ///< Time(us) such that we use this tolerance T to find touching tracks
 
     std::vector<double>  _penalty_threshold_v;
     std::vector<double>  _penalty_value_v;

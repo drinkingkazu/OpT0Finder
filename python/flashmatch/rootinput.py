@@ -74,17 +74,19 @@ class ROOTInput:
 
             ts=p['time_v']
             qcluster.time_true = np.min(ts) * 1.e-3
+
             # If configured, shift X (for MCTrack to immitate reco)
             if self._shift_tpc:
                 qcluster.xshift = qcluster.time_true * self.det.DriftVelocity()
                 qcluster = qcluster + qcluster.xshift
+
             # Assign the index number of a particle
             qcluster.idx = p_idx
 
             qcluster_v.append(qcluster)
         return qcluster_v
 
-    
+
     def make_flash(self,opflash):
         flash_v = []
         for f_idx, f in enumerate(opflash):
@@ -105,7 +107,7 @@ class ROOTInput:
                 flash_v.append(flash)
         return flash_v
 
-    
+
     def make_flashmatch_input(self, event):
         """
         Make sample from ROOT files
@@ -119,7 +121,7 @@ class ROOTInput:
             # Define allowed X recording regions
             min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._periodTPC]
             for tpc in result.qcluster_v: tpc.drop(min_tpcx,max_tpcx)
-                
+
         # Find the list of recob::OpFlash entries for this event
         result.flash_v = self.make_flash(self.get_opflash(event))
 
@@ -157,4 +159,3 @@ class ROOTInput:
                     break
 
         return result
-

@@ -29,12 +29,15 @@ namespace flashmatch {
 
   void QLLMatch::_Configure_(const Config_t &pset) {
     _record = pset.get<bool>("RecordHistory");
+    _check_touching_track = pset.get<bool>("CheckTouchingTrack");
+    _extend_tracks = pset.get<bool>("ExtendTracks");
     _normalize = pset.get<bool>("NormalizeHypothesis");
     _mode   = (QLLMode_t)(pset.get<unsigned short>("QLLMode"));
     _pe_observation_threshold = pset.get<double>("PEObservationThreshold", 1.e-6);
     _pe_hypothesis_threshold  = pset.get<double>("PEHypothesisThreshold", 1.e-6);
     _migrad_tolerance         = pset.get<double>("MIGRADTolerance", 0.1);
     _offset                   = pset.get<double>("Offset", 0.0);
+    _touching_track_window    = pset.get<double>("TouchingTrackWindow", 5.0);
 
     _penalty_threshold_v = pset.get<std::vector<double> >("PEPenaltyThreshold");
     _penalty_value_v = pset.get<std::vector<double> >("PEPenaltyValue");
@@ -168,6 +171,37 @@ namespace flashmatch {
   }
 
   FlashMatch_t QLLMatch::PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0) {
+
+    // before calling minuit, check if this is a touching track
+    if (_check_touching_track) {
+        //double time = (pt_v.min_x() - _vol_xmin) / DetectorSpecs::GetME().DriftVelocity();
+        double time = (pt_v.min_x() - DetectorSpecs::GetME().Volume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
+        //double time = pt_v.min_x() / DetectorSpecs::GetME().DriftVelocity();
+        // if (std::fabs(pt_v.time_true - flash.time_true) < 1) {
+        //     std::cout << flash.time << " " << time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << std::endl;
+        // }
+        if (std::fabs(flash.time - time) < _touching_track_window) { // within 10us?
+            //std::cout << "\t\t\t ************** Touching track ******************* " << std::endl;
+            // Claim a match and don't call minuit.
+            FlashMatch_t res;
+            res.score = 10;
+            res.num_steps = 0;
+            res.minimizer_min_x = pt_v.min_x();
+            res.minimizer_max_x = pt_v.min_x();
+            res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = kINVALID_DOUBLE;
+            // Find point with min x
+            for(auto const& pt : pt_v) {
+                if (res.tpc_point.x > pt.x) {
+                    res.tpc_point.x = pt.x;
+                    res.tpc_point.y = pt.y;
+                    res.tpc_point.z = pt.z;
+                }
+            }
+            res.tpc_point.x = res.tpc_point.x + flash.time * DetectorSpecs::GetME().DriftVelocity();
+            res.hypothesis = flash.pe_v;
+            return res;
+        }
+    }
 
     this->CallMinuit(pt_v, flash, init_x0);
     // Shit happens line above in CallMinuit
@@ -345,7 +379,7 @@ namespace flashmatch {
 	  _current_llhd -= std::log10(arg);
 	  nvalid_pmt += 1;
 	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
-	}	
+	}
       }else if (_mode == kSimpleLLHD) {
 
 	double arg = (H - O * std::log(H));

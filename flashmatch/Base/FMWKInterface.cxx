@@ -12,7 +12,7 @@ namespace flashmatch{
 #include "flashmatch/Base/FMWKTools/PSetUtils.h"
 #include "flashmatch/Base/FMWKTools/PhotonVisibilityService.h"
 namespace flashmatch{
-  
+
   DetectorSpecs::DetectorSpecs(std::string filename) {
 
     assert(!filename.empty());
@@ -24,6 +24,8 @@ namespace flashmatch{
 
     auto max_pt = p.get<std::vector<double> >("MaxPosition");
     auto min_pt = p.get<std::vector<double> >("MinPosition");
+    auto active_max_pt = p.get<std::vector<double> >("ActiveMaxPosition");
+    auto active_min_pt = p.get<std::vector<double> >("ActiveMinPosition");
     assert(max_pt.size() == 3);
     assert(min_pt.size() == 3);
     assert(max_pt[0] >= min_pt[0] &&
@@ -32,6 +34,14 @@ namespace flashmatch{
     _bbox = geoalgo::AABox(min_pt[0],min_pt[1],min_pt[2],max_pt[0],max_pt[1],max_pt[2]);
     //std::cout<<_bbox.Min()[0]<<" "<<_bbox.Min()[1]<<" "<<_bbox.Min()[2]<<std::endl;
     //std::cout<<_bbox.Max()[0]<<" "<<_bbox.Max()[1]<<" "<<_bbox.Max()[2]<<std::endl;
+
+    assert(active_max_pt.size() == 3);
+    assert(active_min_pt.size() == 3);
+    assert(active_max_pt[0] >= active_min_pt[0] &&
+        active_max_pt[1] >= active_min_pt[1] &&
+        active_max_pt[2] >= active_min_pt[2]);
+    _active_bbox = geoalgo::AABox(active_min_pt[0], active_min_pt[1], active_min_pt[2], active_max_pt[0], active_max_pt[1], active_max_pt[2]);
+
     size_t ch=0;
     _pmt_v.clear();
     while(1) {
@@ -62,4 +72,3 @@ namespace flashmatch{
 }
 
 #endif
-
