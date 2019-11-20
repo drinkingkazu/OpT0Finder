@@ -26,22 +26,23 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
     if num_tracks is not None:
         num_tracks = int(num_tracks)
 
-    event_list,ihandler = None,None
+    entries,ihandler = None,None
     if particleana is None and opflashana is None:
         ihandler = ToyMC(cfg_file)
-        event_list = range(repeat)
+        entries = range(repeat)
     else:
         ihandler = ROOTInput(opflashana,particleana,cfg_file)
-        event_list = np.unique(ihandler._particles['event'])
+        entries  = range(len(ihandler))
         num_tracks = None
         print('Found %d events' % len(event_list))
 
     np_result = None
-    for event in event_list:
-        sys.stdout.write('Event %d/%d\n' %(event,len(event_list)))
+    for entry in entries:
+        sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
         sys.stdout.flush()
         # Generate samples
-        match_input = ihandler.make_flashmatch_input(event if num_tracks is None else num_tracks)
+        generator_arg = entry if isinstance(ihandler,ROOTInput) else num_tracks
+        match_input = ihandler.make_flashmatch_input(generator_arg)
         # Register for matching
         mgr.Reset()
         for pmt in match_input.flash_v:
@@ -79,7 +80,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 print(msg)
                 continue
             store = np.array([[
-                event,
+                ihandler.event_id(entry),
+                entry,
                 match.score,
                 pmt.idx,
                 tpc.idx,

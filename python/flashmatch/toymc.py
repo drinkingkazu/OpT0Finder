@@ -17,6 +17,9 @@ class ToyMC:
         if not cfg_file is None:
             self.configure(cfg_file)
 
+    def event_id(self,entry):
+        return -1
+
     def configure(self,cfg_file):
         self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
         # configure

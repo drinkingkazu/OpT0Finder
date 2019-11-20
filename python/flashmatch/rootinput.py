@@ -15,6 +15,14 @@ class ROOTInput:
         from root_numpy import root2array
         self._particles = root2array(particleana, self._tpc_tree_name)
         self._opflash = root2array(opflashana, self._pmt_tree_name)
+        # Check data consistency
+        self._entries_to_event = np.unique(self._particles['event']).astype(np.int32)
+
+    def event_id(self,entry):
+        return self._entries_to_event(entry)
+
+    def __len__(self):
+        return len(self._entries_to_event)
 
     def configure(self,cfg_file):
         self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
@@ -48,11 +56,15 @@ class ROOTInput:
                 seed = int(time.time())
             np.random.seed(seed)
 
-    def get_particle(self,event):
-        return self._particles[self._particles['event'] == event]
+    def num_entries(self):
+        return len(self._entries_to_event)
 
-    def get_opflash(self,event):
-        return self._opflash[self._opflash['event'] == event]
+    def get_entry(self,entry):
+        event = self._entries_to_event[entry]
+        return self.get_event(event)
+
+    def get_event(self,event):
+        return self._particles[self._particles['event'] == event], self._opflash[self._opflash['event'] == event]
 
     def make_qcluster(self,particles,select_pdg=[]):
         qcluster_v = []
@@ -106,13 +118,13 @@ class ROOTInput:
         return flash_v
 
     
-    def make_flashmatch_input(self, event):
+    def make_flashmatch_input(self, entry):
         """
         Make sample from ROOT files
         """
         result = FlashMatchInput()
         # Find the list of sim::MCTrack entries for this event
-        particles = self.get_particle(event)
+        opflash, particles = self.get_entry(entry)
         result.raw_qcluster_v = self.make_qcluster(particles,select_pdg=[13])
         result.qcluster_v = [flashmatch.QCluster_t(tpc) for tpc in result.raw_qcluster_v]
         if self._truncate_tpc_readout:
@@ -121,7 +133,7 @@ class ROOTInput:
             for tpc in result.qcluster_v: tpc.drop(min_tpcx,max_tpcx)
                 
         # Find the list of recob::OpFlash entries for this event
-        result.flash_v = self.make_flash(self.get_opflash(event))
+        result.flash_v = self.make_flash(opflash)
 
         # compute dt to previous and next flash
         for pmt in result.flash_v:
