@@ -1,7 +1,7 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
-from .utils import FlashMatchInput
+from utils import FlashMatchInput
 
 class ROOTInput:
     def __init__(self, opflashana, particleana, cfg_file=None):
@@ -70,7 +70,7 @@ class ROOTInput:
         qcluster_v = []
         for p_idx, p in enumerate(particles):
             # Only use specified PDG code if pdg_code is available
-            if len(select_pdg) and hasattr(p,'pdg_code') and int(p['pdg_code']) not in select_pdg:
+            if len(select_pdg) and int(p['pdg_code']) not in select_pdg:
                 continue
             xyzs = np.column_stack([p['x_v'],p['y_v'],p['z_v']]).astype(np.float64)
             traj = flashmatch.as_geoalgo_trajectory(xyzs)
@@ -83,20 +83,22 @@ class ROOTInput:
             if traj.size() < 2: continue;
             # Make QCluster
             qcluster = self._qcluster_algo.MakeQCluster(traj)
-            if hasattr(p,'time_v'):
-                ts=p['time_v']
-                qcluster.time_true = np.min(ts) * 1.e-3
-                # If configured, shift X (for MCTrack to immitate reco)
-                if self._shift_tpc:
-                    qcluster.xshift = qcluster.time_true * det.DriftVelocity()
-                    qcluster = qcluster + qcluster.xshift
+
+            ts=p['time_v']
+            qcluster.time_true = np.min(ts) * 1.e-3
+
+            # If configured, shift X (for MCTrack to immitate reco)
+            if self._shift_tpc:
+                qcluster.xshift = qcluster.time_true * self.det.DriftVelocity()
+                qcluster = qcluster + qcluster.xshift
+
             # Assign the index number of a particle
             qcluster.idx = p_idx
 
             qcluster_v.append(qcluster)
         return qcluster_v
 
-    
+
     def make_flash(self,opflash):
         flash_v = []
         for f_idx, f in enumerate(opflash):
@@ -117,7 +119,7 @@ class ROOTInput:
                 flash_v.append(flash)
         return flash_v
 
-    
+
     def make_flashmatch_input(self, entry):
         """
         Make sample from ROOT files
@@ -131,7 +133,7 @@ class ROOTInput:
             # Define allowed X recording regions
             min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._periodTPC]
             for tpc in result.qcluster_v: tpc.drop(min_tpcx,max_tpcx)
-                
+
         # Find the list of recob::OpFlash entries for this event
         result.flash_v = self.make_flash(opflash)
 
@@ -162,10 +164,10 @@ class ROOTInput:
         for pmt in result.flash_v:
             for tpc in result.qcluster_v:
                 if tpc.idx in tpc_matched: continue
-                if abs(pmt.time_true - tpc.time_true) < self._matching_window:
+                dt = abs(pmt.time_true - tpc.time_true)
+                if dt < self._matching_window:
                     result.true_match.append((pmt.idx,tpc.idx))
                     tpc_matched.append(tpc.idx)
                     break
 
         return result
-

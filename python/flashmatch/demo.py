@@ -1,6 +1,6 @@
 from flashmatch import flashmatch
-from .toymc import ToyMC
-from .rootinput import ROOTInput
+from toymc import ToyMC
+from rootinput import ROOTInput
 import numpy as np
 
 def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):
@@ -67,16 +67,19 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
             else:
                 truncation_frac = -1
             #if particleana is None or opflashana is None:
-            true_minx = tpc.min_x() #- pmt.time * mgr.det.DriftVelocity() #true_xmin_v[match.flash_id]
+            true_minx = tpc.min_x()  #true_xmin_v[match.flash_id]
             true_maxx = tpc.max_x()
+            if (particleana is None and opflashana is None) or (hasattr(ihandler, '_shift_tpc') and ihandler._shift_tpc):
+                true_minx -= - pmt.time * ihandler.det.DriftVelocity()
+                true_maxx -= - pmt.time * ihandler.det.DriftVelocity()
             reco_maxx = match.tpc_point.x + (tpc.max_x() - tpc.min_x())
-            correct_match = (tpc.idx,pmt.idx) in match_input.true_match
+            correct_match = (pmt.idx,tpc.idx) in match_input.true_match
 
             if not out_file:
                 print('Match ID',idx)
-                msg = '  TPC/PMT IDs %d/%d Correct? %s Score %f Min-X %f PE sum %f ... true Min-X %f true PE sum %f truncation %f (%f%%)'
-                msg = msg % (tpc.idx,pmt.idx,correct_match,match.score,match.tpc_point.x,np.sum(match.hypothesis),
-                             true_minx,np.sum(pmt.pe_v),truncation,truncation_frac*100.)
+                msg = '  TPC/PMT IDs %d/%d Correct? %s Score %f Trunc. %f ... reco vs. true: X %f vs. %f, PE %f vs. %f, Time %f vs. %f'
+                msg = msg % (tpc.idx, pmt.idx, correct_match, match.score, truncation, match.tpc_point.x, true_minx,
+                             np.sum(match.hypothesis), np.sum(pmt.pe_v), tpc.time_true, pmt.time_true)
                 print(msg)
                 continue
             store = np.array([[
@@ -238,6 +241,3 @@ if __name__ == '__main__':
         print('opflashana', opflashana)
         print('outfile', outfile)
         demo(cfg_file, particleana=particleana, opflashana=opflashana, out_file=outfile)
-    
-
-

@@ -15,7 +15,7 @@ class ManagerAPI:
         """
         Configure FlashMatchManager
         """
-        self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
+        self.cfg = flashmatch.CreatePSetFromFile(cfg)
         self.mgr.Configure(self.cfg)
 
     def dump_config(self):

@@ -23,11 +23,11 @@ namespace flashmatch{
 namespace flashmatch {
 
   class DetectorSpecs {
-    
+
   public:
     DetectorSpecs(std::string filename="specs.cfg");
     ~DetectorSpecs(){}
-    
+
     inline static DetectorSpecs& GetME(std::string filename="detector_specs.cfg")
     {
       if(!_me) _me = new DetectorSpecs(filename);
@@ -39,7 +39,8 @@ namespace flashmatch {
 
     /// Detector active volume
     inline const geoalgo::AABox& ActiveVolume() const { return _bbox; }
-    
+    inline const geoalgo::AABox& Volume() const { return _active_bbox; } // TODO find better name
+
     /// # of PMTs
     inline size_t NOpDets() const { return _pmt_v.size(); }
 
@@ -59,6 +60,7 @@ namespace flashmatch {
     static DetectorSpecs* _me;
     std::vector<geoalgo::Point_t> _pmt_v;
     geoalgo::AABox _bbox;
+    geoalgo::AABox _active_bbox;
     double _drift_velocity;
     sim::PhotonVoxelDef _voxel_def;
   };

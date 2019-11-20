@@ -18,6 +18,7 @@
 #include "flashmatch/Base/FlashMatchFactory.h"
 #include "flashmatch/Base/BaseFlashMatch.h"
 #include <TMinuit.h>
+#include <TF2.h>
 namespace flashmatch {
   /**
      \class QLLMatch
@@ -28,7 +29,7 @@ namespace flashmatch {
 
   public:
 
-    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD };
+    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD, kIntegralLLHD };
 
   private:
     /// Valid ctor hidden (singleton)
@@ -101,6 +102,9 @@ namespace flashmatch {
     QLLMode_t _mode;   ///< Minimizer mode
     bool _record;      ///< Boolean switch to record minimizer history
     double _normalize; ///< Noramalize hypothesis PE spectrum
+    bool _check_touching_track; ///< Whether to match immediately touching track with flash if timing coincides.
+    bool _extend_tracks; ///< Whether to extend tracks when minimizer reaches the boundary.
+    double _touching_track_window; ///< Time(us) such that we use this tolerance T to find touching tracks
 
     std::vector<double>  _penalty_threshold_v;
     std::vector<double>  _penalty_value_v;
@@ -125,6 +129,8 @@ namespace flashmatch {
     double _reco_x_offset;     ///< reconstructed X offset (from wire-plane to min-x point)
     double _reco_x_offset_err; ///< reconstructed X offset w/ error
     double _qll;               ///< Minimizer return value
+
+    TF2 _poisson;
 
     bool _converged;
 
