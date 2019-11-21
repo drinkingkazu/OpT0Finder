@@ -2,7 +2,7 @@
  * \file FlashMatchManager.h
  *
  * \ingroup Base
- * 
+ *
  * \brief Class def header for a class FlashMatchManager
  *
  * @author kazuhiro
@@ -29,10 +29,10 @@ namespace flashmatch {
   class FlashMatchManager : public LoggerFeature {
 
   public:
-    
+
     /// Default constructor
     FlashMatchManager(const std::string name="FlashMatchManager");
-    
+
     /// Default destructor
     ~FlashMatchManager(){}
 
@@ -47,13 +47,13 @@ namespace flashmatch {
 
     /// Custom algorithm getter
     flashmatch::BaseAlgorithm* GetCustomAlgo(std::string name);
-		 
+
 #ifndef __CINT__
     /// Emplacer of a TPC object (hidden from ROOT5 CINT)
     void Emplace(flashmatch::QCluster_t&& obj);
     /// Emplacer of a TPC object (hidden from ROOT5 CINT)
     void Emplace(flashmatch::Flash_t&& obj);
-#endif   
+#endif
     /// Adder of a TPC object
     void Add(flashmatch::QCluster_t obj);
     /// Adder of a TPC object
@@ -125,10 +125,9 @@ namespace flashmatch {
     /// Full result container indexed by [tpc][flash]
     std::vector<std::vector<flashmatch::FlashMatch_t> > _res_tpc_flash_v;
     /// Full result container indexed by [flash][tpc]
-    std::vector<std::vector<flashmatch::FlashMatch_t> > _res_flash_tpc_v;    
+    std::vector<std::vector<flashmatch::FlashMatch_t> > _res_flash_tpc_v;
   };
 }
 
 #endif
-/** @} */ // end of doxygen group 
-
+/** @} */ // end of doxygen group

@@ -43,6 +43,9 @@ namespace flashmatch {
     double _global_qe;             ///< Global QE
     double _sigma_qe;              ///< Sigma for Gaussian centered on Global QE
     std::vector<double> _qe_v;     ///< PMT-wise relative QE
+    double _segment_size;
+    bool _extend_tracks;
+    double _threshold_extend_track;
   };
 
   /**

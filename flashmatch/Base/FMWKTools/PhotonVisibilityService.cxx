@@ -34,7 +34,7 @@
 //#include "Geometry/CryostatGeo.h"
 //#include "Geometry/OpDetGeo.h"
 #include <chrono>
-
+//#include "flashmatch/Base/FMWKInterface.h"
 using namespace std::chrono;
 namespace phot{
 
@@ -87,6 +87,15 @@ namespace phot{
     fLibraryFile(library),
     fTheLibrary(nullptr)
   {
+    // Get Photon Library Volume from detector specs
+    // auto const& bbox = DetectorSpecs::GetME().PhotonLibraryVolume();
+    // fXmax = bbox.Max()[0];
+    // fXmin = bbox.Min()[0];
+    // fYmax = bbox.Max()[1];
+    // fYmin = bbox.Min()[1];
+    // fZmax = bbox.Max()[2];
+    // fZmin = bbox.Min()[2];
+
     fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz);
     return;
   }

@@ -2,7 +2,7 @@
  * \file BaseFlashMatch.h
  *
  * \ingroup Base
- * 
+ *
  * \brief Class def header for a class BaseFlashMatch
  *
  * @author kazuhiro
@@ -28,13 +28,13 @@ namespace flashmatch {
   */
   class BaseFlashMatch : public BaseAlgorithm{
     friend class FlashMatchManager;
-    
+
   public:
-    
+
     /// Default constructor
     BaseFlashMatch(const std::string name="noname") : BaseAlgorithm(kFlashMatch,name)
     {}
-    
+
     /// Default destructor
     virtual ~BaseFlashMatch(){}
 
@@ -54,7 +54,7 @@ namespace flashmatch {
      */
     virtual FlashMatch_t Match(const QCluster_t&, const Flash_t&) = 0;
 
-    /// Method to call flash hypothesis 
+    /// Method to call flash hypothesis
     Flash_t GetEstimate(const QCluster_t&) const;
 
     /// Method to simply fill provided reference of flashmatch::Flash_t
@@ -70,5 +70,4 @@ namespace flashmatch {
 }
 
 #endif
-/** @} */ // end of doxygen group 
-
+/** @} */ // end of doxygen group

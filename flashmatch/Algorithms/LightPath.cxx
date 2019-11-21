@@ -18,8 +18,8 @@ namespace flashmatch {
   void LightPath::_Configure_(const Config_t &pset)
   {
     _gap          = pset.get< double > ( "SegmentSize" );
-    _light_yield  = pset.get< double > ( "LightYield"  );
-    _dEdxMIP      = pset.get< double > ( "MIPdEdx"     );
+    _light_yield  = DetectorSpecs::GetME().LightYield();
+    _dEdxMIP      = DetectorSpecs::GetME().MIPdEdx();
   }
 
   void LightPath::MakeQCluster(const ::geoalgo::Vector& pt_1,
@@ -89,7 +89,7 @@ namespace flashmatch {
     // Trimming Q_cluster
     auto const& bbox = DetectorSpecs::GetME().ActiveVolume();
     ::geoalgo::Vector pt(3);
-    
+
     QCluster_t final_result;
     final_result.clear();
     final_result.reserve(result.size());
@@ -101,7 +101,7 @@ namespace flashmatch {
         auto pt = result[idx];
     }
     FLASH_INFO() << final_result << std::endl;
-    
+
     return final_result;
     */
   }

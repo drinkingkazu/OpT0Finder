@@ -20,7 +20,7 @@ endif
 DICT    = $(PACKAGE_BUILDDIR)/$(PACKAGE_NAME)Dict
 OBJECTS = $(addprefix $(PACKAGE_BUILDDIR)/, $(SOURCES:.cxx=.o))
 
-all: pre_build main_build pkg_build 
+all: pre_build main_build pkg_build
 
 pre_build:
 
@@ -47,7 +47,7 @@ ifdef HEADERS_DEST
 endif
 
 $(FMATCH_LIBDIR)/$(ROOTMAP):
-	
+
 ###################################################
 
 # "make clean" target
@@ -57,13 +57,13 @@ clean: pre_clean pkg_clean
 	@rm -f $(PACKAGE_BUILDDIR)/*
 	@rm -f $(FMATCH_LIBDIR)/$(SHLIB) $(FMATCH_LIBDIR)/$(SHLIB:.so=.rootmap) $(FMATCH_LIBDIR)/$(SHLIB:.so=_rdict.pcm)
 
-pre_clean: 
+pre_clean:
 
 ###################################################
 libclean:
 	@echo '<< cleaning lib directory >>'
-	@rm -f $(FMATCH_LIBDIR)/$(SHLIB) 
-	@rm -f lib/$(SHLIB) 
+	@rm -f $(FMATCH_LIBDIR)/$(SHLIB)
+	@rm -f lib/$(SHLIB)
 
 ###################################################
 clearCINT:
@@ -75,6 +75,7 @@ clearCINT:
 # auto-generate dependencies using g++ -M
 .depend: $(SOURCES) $(HEADERS)
 	@rm -f .depend
+	# @echo $(SOURCES)
 	@echo '<< checking dependencies>>'
 	@$(CXX) -M $(CXXFLAGS) $(FMATCH_BASIC_ROOTINC) $(INCFLAGS) -DUSING_LARSOFT=0 $(SOURCES) > .depend
 

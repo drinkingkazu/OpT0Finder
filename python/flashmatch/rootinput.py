@@ -87,10 +87,10 @@ class ROOTInput:
             ts=p['time_v']
             qcluster.time_true = np.min(ts) * 1.e-3
 
-            # If configured, shift X (for MCTrack to immitate reco)
-            if self._shift_tpc:
-                qcluster.xshift = qcluster.time_true * self.det.DriftVelocity()
-                qcluster = qcluster + qcluster.xshift
+            # if qcluster.min_x() < -365:
+            #     print("touching ", qcluster.min_x(), qcluster.time_true)
+            if qcluster.min_x() < -370:
+                print('** wrong *** ', qcluster.min_x(), qcluster.max_x(), qcluster.time_true)
 
             # Assign the index number of a particle
             qcluster.idx = p_idx
@@ -129,6 +129,11 @@ class ROOTInput:
         opflash, particles = self.get_entry(entry)
         result.raw_qcluster_v = self.make_qcluster(particles,select_pdg=[13])
         result.qcluster_v = [flashmatch.QCluster_t(tpc) for tpc in result.raw_qcluster_v]
+        # If configured, shift X (for MCTrack to immitate reco)
+        if self._shift_tpc:
+            for i, qcluster in enumerate(result.qcluster_v):
+                qcluster.xshift = qcluster.time_true * self.det.DriftVelocity()
+                result.qcluster_v[i] = qcluster + qcluster.xshift
         if self._truncate_tpc_readout:
             # Define allowed X recording regions
             min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._periodTPC]

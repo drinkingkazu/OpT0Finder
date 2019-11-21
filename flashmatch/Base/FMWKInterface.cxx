@@ -22,10 +22,10 @@ namespace flashmatch{
     auto cfg = CreatePSetFromFile(filename,"cfg");
     auto const& p = cfg.get<::flashmatch::Config_t>("DetectorSpecs");
 
-    auto max_pt = p.get<std::vector<double> >("MaxPosition");
-    auto min_pt = p.get<std::vector<double> >("MinPosition");
-    auto active_max_pt = p.get<std::vector<double> >("ActiveMaxPosition");
-    auto active_min_pt = p.get<std::vector<double> >("ActiveMinPosition");
+    auto max_pt = p.get<std::vector<double> >("ActiveVolumeMax");
+    auto min_pt = p.get<std::vector<double> >("ActiveVolumeMin");
+    auto photon_max_pt = p.get<std::vector<double> >("PhotonLibraryVolumeMax");
+    auto photon_min_pt = p.get<std::vector<double> >("PhotonLibraryVolumeMin");
     assert(max_pt.size() == 3);
     assert(min_pt.size() == 3);
     assert(max_pt[0] >= min_pt[0] &&
@@ -35,12 +35,20 @@ namespace flashmatch{
     //std::cout<<_bbox.Min()[0]<<" "<<_bbox.Min()[1]<<" "<<_bbox.Min()[2]<<std::endl;
     //std::cout<<_bbox.Max()[0]<<" "<<_bbox.Max()[1]<<" "<<_bbox.Max()[2]<<std::endl;
 
-    assert(active_max_pt.size() == 3);
-    assert(active_min_pt.size() == 3);
-    assert(active_max_pt[0] >= active_min_pt[0] &&
-        active_max_pt[1] >= active_min_pt[1] &&
-        active_max_pt[2] >= active_min_pt[2]);
-    _active_bbox = geoalgo::AABox(active_min_pt[0], active_min_pt[1], active_min_pt[2], active_max_pt[0], active_max_pt[1], active_max_pt[2]);
+    assert(photon_max_pt.size() == 3);
+    assert(photon_min_pt.size() == 3);
+    assert(photon_max_pt[0] >= photon_min_pt[0] &&
+        photon_max_pt[1] >= photon_min_pt[1] &&
+        photon_max_pt[2] >= photon_min_pt[2]);
+    _photon_bbox = geoalgo::AABox(photon_min_pt[0], photon_min_pt[1], photon_min_pt[2], photon_max_pt[0], photon_max_pt[1], photon_max_pt[2]);
+
+    phot::PhotonVisibilityService& photon_library = phot::PhotonVisibilityService::GetME();
+    photon_library.SetMaxX(photon_max_pt[0]);
+    photon_library.SetMaxY(photon_max_pt[1]);
+    photon_library.SetMaxZ(photon_max_pt[2]);
+    photon_library.SetMinX(photon_min_pt[0]);
+    photon_library.SetMinY(photon_min_pt[1]);
+    photon_library.SetMinZ(photon_min_pt[2]);
 
     size_t ch=0;
     _pmt_v.clear();
@@ -54,6 +62,8 @@ namespace flashmatch{
     }
 
     _drift_velocity = p.get<double>("DriftVelocity");
+    _light_yield = p.get<double>("LightYield");
+    _MIPdEdx = p.get<double>("MIPdEdx");
 
     _voxel_def = phot::PhotonVisibilityService::GetME().GetVoxelDef();
 
