@@ -190,7 +190,10 @@ namespace flashmatch {
           }
       }
       res.tpc_point.x = res.tpc_point.x - flash.time * DetectorSpecs::GetME().DriftVelocity();
-      res.hypothesis = flash.pe_v;
+      //res.hypothesis = flash.pe_v;
+      Flash_t hypothesis;
+      FillEstimate(pt_v, hypothesis);
+      res.hypothesis = hypothesis.pe_v;
       return res;
   }
 

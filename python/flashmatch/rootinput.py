@@ -77,8 +77,8 @@ class ROOTInput:
 
             # if qcluster.min_x() < -365:
             #     print("touching ", qcluster.min_x(), qcluster.time_true)
-            if qcluster.min_x() < -370:
-                print('** wrong *** ', qcluster.min_x(), qcluster.max_x(), qcluster.time_true)
+            #if qcluster.min_x() < self.det.ActiveVolume().Min()[0]:
+            #    raise Exception('** wrong  *** ', qcluster.min_x(), qcluster.max_x(), qcluster.time_true)
 
             # Assign the index number of a particle
             qcluster.idx = p_idx

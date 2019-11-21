@@ -78,11 +78,21 @@ namespace flashmatch {
     QCluster_t result;
     result.clear();
 
+    // Add first point of trajectory
+    QPoint_t q_pt(trj[0][0], trj[0][1], trj[0][2], 0.);
+    result.emplace_back(q_pt);
+
     for (size_t i = 0; i < trj.size() - 1; i++) {
       auto const& this_loc(trj[i]);
       auto const& last_loc(trj[i + 1]);
       LightPath::MakeQCluster(this_loc, last_loc, result);
     }
+
+    // Add last point of trajectory
+    size_t last = trj.size() - 1;
+    QPoint_t q_pt2(trj[last][0], trj[last][1], trj[last][2], 0.);
+    result.emplace_back(q_pt2);
+
     FLASH_INFO() << result << std::endl;
     return result;
     /*
