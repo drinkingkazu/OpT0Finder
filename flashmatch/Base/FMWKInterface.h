@@ -39,13 +39,19 @@ namespace flashmatch {
 
     /// Detector active volume
     inline const geoalgo::AABox& ActiveVolume() const { return _bbox; }
-    inline const geoalgo::AABox& Volume() const { return _active_bbox; } // TODO find better name
+    inline const geoalgo::AABox& PhotonLibraryVolume() const { return _photon_bbox; } // TODO find better name
 
     /// # of PMTs
     inline size_t NOpDets() const { return _pmt_v.size(); }
 
     /// Drift velocity
     inline double DriftVelocity() const { return _drift_velocity; }
+
+    /// Light yield
+    inline double LightYield() const { return _light_yield; }
+
+    /// MIP dE/dx
+    inline double MIPdEdx() const { return _MIPdEdx; }
 
     /// Visibility
     float GetVisibility(double x, double y, double z, unsigned int opch) const;
@@ -60,9 +66,11 @@ namespace flashmatch {
     static DetectorSpecs* _me;
     std::vector<geoalgo::Point_t> _pmt_v;
     geoalgo::AABox _bbox;
-    geoalgo::AABox _active_bbox;
+    geoalgo::AABox _photon_bbox;
     double _drift_velocity;
     sim::PhotonVoxelDef _voxel_def;
+    double _light_yield;
+    double _MIPdEdx;
   };
 
 }

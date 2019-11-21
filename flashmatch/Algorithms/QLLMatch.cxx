@@ -30,7 +30,6 @@ namespace flashmatch {
   void QLLMatch::_Configure_(const Config_t &pset) {
     _record = pset.get<bool>("RecordHistory");
     _check_touching_track = pset.get<bool>("CheckTouchingTrack");
-    _extend_tracks = pset.get<bool>("ExtendTracks");
     _normalize = pset.get<bool>("NormalizeHypothesis");
     _mode   = (QLLMode_t)(pset.get<unsigned short>("QLLMode"));
     _pe_observation_threshold = pset.get<double>("PEObservationThreshold", 1.e-6);
@@ -38,7 +37,11 @@ namespace flashmatch {
     _migrad_tolerance         = pset.get<double>("MIGRADTolerance", 0.1);
     _offset                   = pset.get<double>("Offset", 0.0);
     _touching_track_window    = pset.get<double>("TouchingTrackWindow", 5.0);
-
+    // _custom_algo              = pset.get<std::string>("CustomAlgo", "");
+    // if (!_custom_algo.empty()) _alg_custom_algo = CustomAlgoFactory::get().create(_custom_algo, _custom_algo);
+    // if (_alg_custom_algo) {
+    //
+    // }
     _penalty_threshold_v = pset.get<std::vector<double> >("PEPenaltyThreshold");
     _penalty_value_v = pset.get<std::vector<double> >("PEPenaltyValue");
 
@@ -82,7 +85,7 @@ namespace flashmatch {
 
     auto res1 = PESpectrumMatch(pt_v,flash,true);
     auto res2 = PESpectrumMatch(pt_v,flash,false);
-    //FLASH_INFO() << "Using   mid-x-init ... maximized 1/param Score=" << res1.score << " @ X=" << res1.tpc_point.x << " [cm]" << std::endl;
+    FLASH_INFO() << "Using   mid-x-init ... maximized 1/param Score=" << res1.score << " @ X=" << res1.tpc_point.x << " [cm]" << std::endl;
     FLASH_INFO() << "Without mid-x-init ... maximized 1/param Score=" << res2.score << " @ X=" << res2.tpc_point.x << " [cm]" << std::endl;
 
     auto res = (res1.score > res2.score ? res1 : res2);
@@ -170,50 +173,65 @@ namespace flashmatch {
 
   }
 
+  FlashMatch_t QLLMatch::TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score) {
+      // Claim a match and don't call minuit.
+      FlashMatch_t res;
+      res.score = score;
+      res.num_steps = 0;
+      res.minimizer_min_x = pt_v.min_x();
+      res.minimizer_max_x = pt_v.min_x();
+      res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = kINVALID_DOUBLE;
+      // Find point with min x
+      for(auto const& pt : pt_v) {
+          if (res.tpc_point.x > pt.x) {
+              res.tpc_point.x = pt.x;
+              res.tpc_point.y = pt.y;
+              res.tpc_point.z = pt.z;
+          }
+      }
+      res.tpc_point.x = res.tpc_point.x - flash.time * DetectorSpecs::GetME().DriftVelocity();
+      res.hypothesis = flash.pe_v;
+      return res;
+  }
+
   FlashMatch_t QLLMatch::PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0) {
 
     // before calling minuit, check if this is a touching track
     if (_check_touching_track) {
         //double time = (pt_v.min_x() - _vol_xmin) / DetectorSpecs::GetME().DriftVelocity();
-        double time = (pt_v.min_x() - DetectorSpecs::GetME().Volume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
+        double time = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
         //double time = pt_v.min_x() / DetectorSpecs::GetME().DriftVelocity();
         // if (std::fabs(pt_v.time_true - flash.time_true) < 1) {
         //     std::cout << flash.time << " " << time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << std::endl;
         // }
         if (std::fabs(flash.time - time) < _touching_track_window) { // within 10us?
             //std::cout << "\t\t\t ************** Touching track ******************* " << std::endl;
-            // Claim a match and don't call minuit.
-            FlashMatch_t res;
-            res.score = 10;
-            res.num_steps = 0;
-            res.minimizer_min_x = pt_v.min_x();
-            res.minimizer_max_x = pt_v.min_x();
-            res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = kINVALID_DOUBLE;
-            // Find point with min x
-            for(auto const& pt : pt_v) {
-                if (res.tpc_point.x > pt.x) {
-                    res.tpc_point.x = pt.x;
-                    res.tpc_point.y = pt.y;
-                    res.tpc_point.z = pt.z;
-                }
-            }
-            res.tpc_point.x = res.tpc_point.x + flash.time * DetectorSpecs::GetME().DriftVelocity();
-            res.hypothesis = flash.pe_v;
-            return res;
+            return this->TouchingTrack(pt_v, flash, 10.0);
         }
     }
 
-    this->CallMinuit(pt_v, flash, init_x0);
-    // Shit happens line above in CallMinuit
-
-    // Estimate position
     FlashMatch_t res;
     res.num_steps = _num_steps;
     res.minimizer_min_x = _minimizer_min_x;
     res.minimizer_max_x = _minimizer_max_x;
-    if (std::isnan(_qll)) return res;
-
     res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = 0;
+    res.score = 0;
+
+    FLASH_INFO() << "true time " << pt_v.time_true << " " << flash.time_true << std::endl;
+    auto return_value = this->CallMinuit(pt_v, flash, init_x0);
+    // Shit happens line above in CallMinuit
+    if (return_value == kINVALID_DOUBLE) {
+        double time = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
+        if (std::fabs(flash.time - time) < _touching_track_window) {
+            return this->TouchingTrack(pt_v, flash, 20.0);
+        }
+        else {
+            return res;
+        }
+    }
+
+    // Estimate position
+    if (std::isnan(_qll)) return res;
 
     double weight = 0;
 
@@ -281,7 +299,6 @@ namespace flashmatch {
     //auto end = high_resolution_clock::now();
     //auto duration = duration_cast<microseconds>(end - start);
     //std::cout << "Duration ChargeHypothesis 1 = " << duration.count() << "us" << std::endl;
-
 
     //start = high_resolution_clock::now();
     FillEstimate(_var_trk, _hypothesis);
@@ -354,7 +371,7 @@ namespace flashmatch {
 	if(!std::isnan(arg) && !std::isinf(arg)) {
 	  _current_llhd -= std::log10(arg);
 	  nvalid_pmt += 1;
-	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
+	  //if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
 	}
       }
       else if(_mode == kWeightedLLHD) {
@@ -486,23 +503,27 @@ namespace flashmatch {
     _minimizer_min_x = std::numeric_limits<double>::max();
     _minimizer_max_x = -std::numeric_limits<double>::max();
 
-
-    if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
-
     double reco_x = _vol_xmin + _offset; // FIXME
     if (!init_x0) {
       //reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
       // Assume this is the right flash... then
       reco_x = _raw_xmin_pt.x - pmt.time * DetectorSpecs::GetME().DriftVelocity();
-      if(reco_x < _vol_xmin || (reco_x + _raw_xmax_pt.x - _raw_xmin_pt.x) > _vol_xmax)
-	return kINVALID_DOUBLE;
+      if(reco_x < _vol_xmin || (reco_x + _raw_xmax_pt.x - _raw_xmin_pt.x) > _vol_xmax) {
+          FLASH_INFO() << "returning invalid double" << std::endl;
+          if (_minuit_ptr) delete _minuit_ptr;
+          _minuit_ptr = 0;
+	         return kINVALID_DOUBLE;
+        }
     }
     double reco_x_err = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2.;
     double xmin = _vol_xmin;
     double xmax = (_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x) + _vol_xmin;
-
+    FLASH_INFO() << _raw_xmax_pt.x << " " << _raw_xmin_pt.x << " " << (xmin < xmax) << " " << (xmin == xmax) << std::endl;
     FLASH_INFO() << "Running Minuit x: " << xmin << " => " << xmax
 		 << " ... initial state x=" <<reco_x <<" x_err=" << reco_x_err << std::endl;
+
+
+        if (!_minuit_ptr) _minuit_ptr = new TMinuit(4);
     double MinFval;
     int ierrflag, npari, nparx, istat;
     double arglist[4], Fmin, Fedm, Errdef;
@@ -531,8 +552,9 @@ namespace flashmatch {
     //arglist[0]   = 5.0e+2;
     //arglist[1]   = 1.0e-6;
     //_minuit_ptr->mnexcm ("simplex",arglist,2,ierrflag);
-
+    FLASH_INFO() << " reco x before " << reco_x << std::endl;
     _minuit_ptr->GetParameter(0, reco_x, reco_x_err);
+    FLASH_INFO() << " reco x after " << reco_x << std::endl;
 
     _minuit_ptr->mnstat(Fmin, Fedm, Errdef, npari, nparx, istat);
 
@@ -561,6 +583,7 @@ namespace flashmatch {
     */
 
     // Transfer the minimization variables:
+    FLASH_INFO() << " transfering variables " << reco_x << std::endl;
     _reco_x_offset = reco_x;
     _reco_x_offset_err = reco_x_err;
     _qll = MinFval;

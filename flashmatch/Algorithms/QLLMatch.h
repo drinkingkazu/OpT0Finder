@@ -93,6 +93,7 @@ namespace flashmatch {
 
   private:
 
+      FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score);
     FlashMatch_t PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0);
 
     FlashMatch_t OnePMTMatch(const Flash_t &flash);
@@ -103,7 +104,6 @@ namespace flashmatch {
     bool _record;      ///< Boolean switch to record minimizer history
     double _normalize; ///< Noramalize hypothesis PE spectrum
     bool _check_touching_track; ///< Whether to match immediately touching track with flash if timing coincides.
-    bool _extend_tracks; ///< Whether to extend tracks when minimizer reaches the boundary.
     double _touching_track_window; ///< Time(us) such that we use this tolerance T to find touching tracks
 
     std::vector<double>  _penalty_threshold_v;
@@ -149,7 +149,6 @@ namespace flashmatch {
 
     double _vol_xmax, _vol_xmin;
     std::vector<double> _xpos_v, _ypos_v, _zpos_v;
-
   };
 
   /**

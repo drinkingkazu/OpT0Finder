@@ -33,6 +33,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
     else:
         ihandler = ROOTInput(opflashana,particleana,cfg_file)
         event_list = np.unique(ihandler._particles['event'])
+        #event_list = [6259., 6748.]
         num_tracks = None
         print('Found %d events' % len(event_list))
 
@@ -66,11 +67,13 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
             else:
                 truncation_frac = -1
             #if particleana is None or opflashana is None:
-            true_minx = tpc.min_x()  #true_xmin_v[match.flash_id]
-            true_maxx = tpc.max_x()
-            if (particleana is None and opflashana is None) or (hasattr(ihandler, '_shift_tpc') and ihandler._shift_tpc):
-                true_minx -= - pmt.time * ihandler.det.DriftVelocity()
-                true_maxx -= - pmt.time * ihandler.det.DriftVelocity()
+            true_minx = raw.min_x()  #true_xmin_v[match.flash_id]
+            true_maxx = raw.max_x()
+            # print(true_minx, raw.min_x())
+            # if (particleana is None and opflashana is None) or (hasattr(ihandler, '_shift_tpc') and ihandler._shift_tpc):
+            #     true_minx -= tpc.time_true * ihandler.det.DriftVelocity()
+            #     true_maxx -= tpc.time_true * ihandler.det.DriftVelocity()
+            #print(true_minx)
             reco_maxx = match.tpc_point.x + (tpc.max_x() - tpc.min_x())
             correct_match = (pmt.idx,tpc.idx) in match_input.true_match
 
@@ -88,6 +91,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 tpc.idx,
                 true_minx,
                 true_maxx,
+                tpc.min_x(),
+                tpc.max_x(),
                 reco_maxx,
                 match.tpc_point.x,
                 match.tpc_point.y,
@@ -170,6 +175,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         'track_idx',
         'true_min_x',
         'true_max_x',
+        'qcluster_min_x',
+        'qcluster_max_x',
         'reco_max_x',
         'tpc_point_x',
         'tpc_point_y',

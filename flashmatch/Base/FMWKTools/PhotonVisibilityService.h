@@ -20,18 +20,18 @@
 
 ///General LArSoft Utilities
 namespace phot{
-  
+
   class PhotonVisibilityService {
   public:
-   
+
     //PhotonVisibilityService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
     //PhotonVisibilityService(const std::string library="uboone_photon_library_v5.root");
     PhotonVisibilityService(const std::string library="PhotonLibrary-20180801.root");
-    
+
     //void reconfigure(fhicl::ParameterSet const& p);
-    
+
     //double GetQuenchingFactor(double dQdx);
-    
+
     //double DistanceToOpDet(                 double* xyz, unsigned int OpDet );
     //double SolidAngleFactor(                double* xyz, unsigned int OpDet );
     float GetVisibility(double* xyz, unsigned int OpChannel ) const;
@@ -56,23 +56,30 @@ namespace phot{
     inline int    GetNZ() const { return fNz; }
     inline size_t GetNOpChannels() const { return fNOpDetChannels; }
 
+    inline void SetMaxX(float x) { fXmax = x; }
+    inline void SetMaxY(float x) { fYmax = x; }
+    inline void SetMaxZ(float x) { fZmax = x; }
+    inline void SetMinX(float x) { fXmin = x; }
+    inline void SetMinY(float x) { fYmin = x; }
+    inline void SetMinZ(float x) { fZmin = x; }
+
     const std::vector<float>* GetAllVisibilities( double* xyz ) const;
 
     inline const std::vector<std::vector<float> >& GetLibraryData() const
     { if(!fTheLibrary) LoadLibrary(); return fTheLibrary->GetData(); }
-    
+
     void LoadLibrary() const;
     void StoreLibrary();
-    
-    
+
+
     void StoreLightProd(    int  VoxID,  double  N );
     void RetrieveLightProd( int& VoxID,  double& N ) const;
-    
+
     void SetLibraryEntry(   int VoxID, int OpChannel, float N);
     float GetLibraryEntry( int VoxID, int OpChannel) const;
     const std::vector<float>* GetLibraryEntries( int VoxID ) const;
 
-    
+
     bool IsBuildJob() const { return fLibraryBuildJob; }
     bool UseParameterization() const {return fParameterization;}
 
@@ -90,29 +97,29 @@ namespace phot{
       if(!_me) _me = new PhotonVisibilityService(filename);
       return *_me;
     }
-    
+
   private:
 
     static PhotonVisibilityService* _me;
-    
+
     int    fCurrentVoxel;
     double fCurrentValue;
-    
+
     float  fXmin, fXmax;
     float  fYmin, fYmax;
     float  fZmin, fZmax;
     int    fNx, fNy, fNz;
     size_t fNOpDetChannels;
     bool fUseCryoBoundary;
-    
+
     bool                 fLibraryBuildJob;
     bool                 fDoNotLoadLibrary;
     bool                 fParameterization;
-    std::string          fLibraryFile;      
+    std::string          fLibraryFile;
     mutable PhotonLibrary* fTheLibrary;
     sim::PhotonVoxelDef  fVoxelDef;
-    
-    
+
+
   }; // class PhotonVisibilityService
 } //namespace utils
 //DECLARE_ART_SERVICE(phot::PhotonVisibilityService, LEGACY)

@@ -22,7 +22,9 @@ namespace flashmatch {
   {
     omp_set_num_threads(NUM_THREADS);
     _global_qe = pset.get<double>("GlobalQE");
-
+    _extend_tracks = pset.get<bool>("ExtendTracks", false);
+    _threshold_extend_track = pset.get<double>("ThresholdExtendTrack", 5.0);
+    _segment_size = pset.get<double>("SegmentSize", 0.5);
     _qe_v.clear();
     _qe_v = pset.get<std::vector<double> >("CCVCorrection",_qe_v);
     if(_qe_v.empty()) _qe_v.resize(DetectorSpecs::GetME().NOpDets(),1.0);
@@ -33,8 +35,58 @@ namespace flashmatch {
     }
   }
 
-  void PhotonLibHypothesis::FillEstimate(const QCluster_t& trk, Flash_t &flash) const
+  void PhotonLibHypothesis::FillEstimate(const QCluster_t& old_trk, Flash_t &flash) const
   {
+      QCluster_t trk = old_trk;
+    if (_extend_tracks) {
+        double min_x = kINVALID_DOUBLE; double max_x = -kINVALID_DOUBLE;
+        size_t min_idx = 0; size_t max_idx = 0;
+        for (size_t pt_index = 0; pt_index < trk.size(); ++pt_index) {
+            if (trk[pt_index].x < min_x) {
+                min_x = trk[pt_index].x;
+                min_idx = pt_index;
+            }
+            if (trk[pt_index].x > max_x) {
+                max_x = trk[pt_index].x;
+                max_idx = pt_index;
+            }
+        }
+        if (std::fabs(min_x - DetectorSpecs::GetME().ActiveVolume().Min()[0])<_threshold_extend_track) {
+            std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
+            // Extend the track
+            // Compute coordinates of final point first
+            geoalgo::Vector A(trk[max_idx].x, trk[max_idx].y, trk[max_idx].z);
+            geoalgo::Vector B(trk[min_idx].x, trk[min_idx].y, trk[min_idx].z);
+            geoalgo::Vector AB = B - A;
+
+            double x_C = DetectorSpecs::GetME().PhotonLibraryVolume().Min()[0];
+            double lengthBC = (x_C - B[0])/(B[0] - A[0]) * AB.Length();
+            geoalgo::Vector C = B + AB / AB.Length() * lengthBC;
+
+            // Add to _var_trk the part betwen boundary and C
+            //_custom_algo->MakeQCluster(C, B, _var_trk, -1);
+            geoalgo::Vector unit = (C - B).Dir();
+
+            QPoint_t q_pt;
+            geoalgo::Vector current = B;
+            int num_pts = int(lengthBC / _segment_size);
+            trk.reserve(trk.size() + num_pts);
+            for (size_t i = 0; i < num_pts+1; i++) {
+                double current_segment_size = (i < num_pts ? _segment_size : (lengthBC - _segment_size*num_pts));
+                current = current + unit * current_segment_size/2.0;
+                q_pt.x = current[0];
+                q_pt.y = current[1];
+                q_pt.z = current[2];
+                q_pt.q = current_segment_size * DetectorSpecs::GetME().LightYield() * DetectorSpecs::GetME().MIPdEdx();
+                trk.emplace_back(q_pt);
+                current = current + unit * current_segment_size/2.0;
+                std::cout << "Adding point " << current  << " " << i << " " << num_pts << std::endl;
+            }
+            std::cout << " done " << trk.size() << std::endl;
+
+        }
+    }
+
     size_t n_pmt = DetectorSpecs::GetME().NOpDets();//n_pmt returns 0 now, needs to be fixed
     if(flash.pe_v.empty()) flash.pe_v.resize(n_pmt);
     if(flash.pe_err_v.empty()) flash.pe_err_v.resize(n_pmt);
