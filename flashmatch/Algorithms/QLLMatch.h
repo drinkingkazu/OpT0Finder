@@ -93,7 +93,7 @@ namespace flashmatch {
 
   private:
 
-      FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score);
+      FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score, bool tpc0);
     FlashMatch_t PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0);
 
     FlashMatch_t OnePMTMatch(const Flash_t &flash);
