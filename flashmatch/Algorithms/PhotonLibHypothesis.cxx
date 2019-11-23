@@ -51,8 +51,9 @@ namespace flashmatch {
                 max_idx = pt_index;
             }
         }
-        if (std::fabs(min_x - DetectorSpecs::GetME().ActiveVolume().Min()[0])<_threshold_extend_track) {
-            std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
+        if ((std::fabs(min_x - DetectorSpecs::GetME().ActiveVolume().Min()[0])<_threshold_extend_track) || (std::fabs(DetectorSpecs::GetME().ActiveVolume().Max()[0] - max_x)>_threshold_extend_track)) {
+            //std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
+            //std::cout << trk.front().x << " " << trk.back().x << std::endl;
             // Extend the track
             // Compute coordinates of final point first
             geoalgo::Vector A(trk[max_idx].x, trk[max_idx].y, trk[max_idx].z);
@@ -78,11 +79,17 @@ namespace flashmatch {
                 q_pt.y = current[1];
                 q_pt.z = current[2];
                 q_pt.q = current_segment_size * DetectorSpecs::GetME().LightYield() * DetectorSpecs::GetME().MIPdEdx();
-                trk.emplace_back(q_pt);
+                if (trk.front().x < trk.back().x) {
+                    trk.insert(trk.begin(), q_pt);
+                }
+                else {
+                    trk.emplace_back(q_pt);
+                }
                 current = current + unit * current_segment_size/2.0;
-                std::cout << "Adding point " << current  << " " << i << " " << num_pts << std::endl;
+                //std::cout << "Adding point " << current  << " " << i << " " << num_pts << std::endl;
             }
-            std::cout << " done " << trk.size() << std::endl;
+            //std::cout << " done " << trk.size() << std::endl;
+            //std::cout << trk.front().x << " " << trk.back().x << std::endl;
 
         }
     }

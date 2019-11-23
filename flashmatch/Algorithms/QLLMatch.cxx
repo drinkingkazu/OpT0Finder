@@ -173,40 +173,60 @@ namespace flashmatch {
 
   }
 
-  FlashMatch_t QLLMatch::TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score) {
+  FlashMatch_t QLLMatch::TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score, bool tpc0) {
       // Claim a match and don't call minuit.
       FlashMatch_t res;
       res.score = score;
       res.num_steps = 0;
-      res.minimizer_min_x = pt_v.min_x();
-      res.minimizer_max_x = pt_v.min_x();
+      res.minimizer_min_x =  tpc0 ? pt_v.min_x() : pt_v.max_x();
+      res.minimizer_max_x = tpc0 ? pt_v.min_x() : pt_v.max_x();
       res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = kINVALID_DOUBLE;
       // Find point with min x
       for(auto const& pt : pt_v) {
-          if (res.tpc_point.x > pt.x) {
+          if (pt.x == res.minimizer_min_x) {
               res.tpc_point.x = pt.x;
               res.tpc_point.y = pt.y;
               res.tpc_point.z = pt.z;
           }
       }
-      res.tpc_point.x = res.tpc_point.x - flash.time * DetectorSpecs::GetME().DriftVelocity();
-      res.hypothesis = flash.pe_v;
+      std::cout << flash.time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << " " << res.tpc_point.x << std::endl;
+      res.tpc_point.x = res.tpc_point.x + (tpc0 ? -1.0 : 1.0) * flash.time * DetectorSpecs::GetME().DriftVelocity();
+      std::cout << res.tpc_point.x << std::endl;
+      //res.hypothesis = flash.pe_v;
+      Flash_t hypothesis;
+      FillEstimate(pt_v, hypothesis);
+      res.hypothesis = hypothesis.pe_v;
       return res;
   }
 
   FlashMatch_t QLLMatch::PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0) {
 
-    // before calling minuit, check if this is a touching track
-    if (_check_touching_track) {
-        //double time = (pt_v.min_x() - _vol_xmin) / DetectorSpecs::GetME().DriftVelocity();
-        double time = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
-        //double time = pt_v.min_x() / DetectorSpecs::GetME().DriftVelocity();
+    // before calling minuit, check if this is a touching track (score 10)
+    // or a track crossing through both tpc planes (score 20)
+    if (_check_touching_track || (pt_v.max_x() - pt_v.min_x() >= DetectorSpecs::GetME().ActiveVolume().Max()[0] - DetectorSpecs::GetME().ActiveVolume().Min()[0])) {
+        double score = _check_touching_track ? 10.0 : 20.0;
+        double time_tpc0 = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
+        double time_tpc1 = (DetectorSpecs::GetME().ActiveVolume().Max()[0] - pt_v.min_x()) / DetectorSpecs::GetME().DriftVelocity();
         // if (std::fabs(pt_v.time_true - flash.time_true) < 1) {
         //     std::cout << flash.time << " " << time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << std::endl;
         // }
-        if (std::fabs(flash.time - time) < _touching_track_window) { // within 10us?
+        if (std::fabs(flash.time - time_tpc0) < _touching_track_window) { // within 10us?
             //std::cout << "\t\t\t ************** Touching track ******************* " << std::endl;
-            return this->TouchingTrack(pt_v, flash, 10.0);
+            return this->TouchingTrack(pt_v, flash, score, true);
+        }
+        else if (std::fabs(flash.time - time_tpc1) < _touching_track_window) {
+            return this->TouchingTrack(pt_v, flash, score, false);
+        }
+        else if (!_check_touching_track) {
+            // If the track is crossing both tpc planes, regardless of _check_touching_track
+            // we do not want to go through minuit (might return nan).
+            FlashMatch_t res;
+            res.num_steps = _num_steps;
+            res.minimizer_min_x = _minimizer_min_x;
+            res.minimizer_max_x = _minimizer_max_x;
+            res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = 0;
+            res.score = 0;
+            return res;
         }
     }
 
@@ -220,15 +240,15 @@ namespace flashmatch {
     FLASH_INFO() << "true time " << pt_v.time_true << " " << flash.time_true << std::endl;
     auto return_value = this->CallMinuit(pt_v, flash, init_x0);
     // Shit happens line above in CallMinuit
-    if (return_value == kINVALID_DOUBLE) {
-        double time = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
-        if (std::fabs(flash.time - time) < _touching_track_window) {
-            return this->TouchingTrack(pt_v, flash, 20.0);
-        }
-        else {
-            return res;
-        }
-    }
+    // if (return_value == kINVALID_DOUBLE) {
+    //     double time = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
+    //     if (std::fabs(flash.time - time) < _touching_track_window) {
+    //         return this->TouchingTrack(pt_v, flash, 20.0);
+    //     }
+    //     else {
+    //         return res;
+    //     }
+    // }
 
     // Estimate position
     if (std::isnan(_qll)) return res;
