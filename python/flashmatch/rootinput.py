@@ -121,7 +121,7 @@ class ROOTInput:
         if self._shift_tpc:
             for i, qcluster in enumerate(result.qcluster_v):
                 qcluster.xshift = qcluster.time_true * self.det.DriftVelocity()
-                if qcluster.min_x() - self.det.ActiveVolume().Min()[0] < self.det.ActiveVolume().Max()[0] - qcluster.min_x():
+                if qcluster.min_x() - self.det.ActiveVolume().Min()[0] < self.det.ActiveVolume().Max()[0] - qcluster.max_x():
                     result.qcluster_v[i] = qcluster + qcluster.xshift #+ (qcluster.min_x() - self.det.ActiveVolume().Min()[0])
                 else:
                     result.qcluster_v[i] = qcluster - qcluster.xshift #- (self.det.ActiveVolume().Max()[0] - qcluster.min_x())
