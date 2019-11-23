@@ -195,7 +195,7 @@ class vis_icarus(object):
         """
         data = self._geo['pmts']
         return go.Scatter3d(x=data[:,0],y=data[:,1],z=data[:,2],mode='markers',
-                            name=None,
+                            name=name,
                             marker = dict(
                                 size = 6,
                                 color=pmt_color,
