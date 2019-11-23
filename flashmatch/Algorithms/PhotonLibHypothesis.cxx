@@ -40,7 +40,7 @@ namespace flashmatch {
       QCluster_t trk = old_trk;
     if (_extend_tracks) {
         double min_x = kINVALID_DOUBLE; double max_x = -kINVALID_DOUBLE;
-        size_t min_idx = 0; size_t max_idx = 0;
+        size_t min_idx_x = 0; size_t max_idx_x = 0;
         for (size_t pt_index = 0; pt_index < trk.size(); ++pt_index) {
             if (trk[pt_index].x < min_x) {
                 min_x = trk[pt_index].x;
@@ -51,7 +51,12 @@ namespace flashmatch {
                 max_idx = pt_index;
             }
         }
-        if ((std::fabs(min_x - DetectorSpecs::GetME().ActiveVolume().Min()[0])<_threshold_extend_track) || (std::fabs(DetectorSpecs::GetME().ActiveVolume().Max()[0] - max_x)>_threshold_extend_track)) {
+        if (((trk[min_idx].x - DetectorSpecs::GetME().ActiveVolume().Min()[0]) < _threshold_extend_track) ||
+            ((trk[min_idx].y - DetectorSpecs::GetME().ActiveVolume().Min()[1]) < _threshold_extend_track) ||
+            ((trk[min_idx].z - DetectorSpecs::GetME().ActiveVolume().Min()[2]) < _threshold_extend_track) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[0] - trk[max_idx].x) < _threshold_extend_track) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[1] - trk[max_idx].y) < _threshold_extend_track) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[2] - trk[max_idx].z) < _threshold_extend_track)) {
             //std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
             //std::cout << trk.front().x << " " << trk.back().x << std::endl;
             // Extend the track

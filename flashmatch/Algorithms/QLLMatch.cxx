@@ -178,8 +178,8 @@ namespace flashmatch {
       FlashMatch_t res;
       res.score = score;
       res.num_steps = 0;
-      res.minimizer_min_x =  tpc0 ? pt_v.min_x() : pt_v.max_x();
-      res.minimizer_max_x = tpc0 ? pt_v.min_x() : pt_v.max_x();
+      res.minimizer_min_x =  pt_v.min_x();//tpc0 ? pt_v.min_x() : pt_v.max_x();
+      res.minimizer_max_x = pt_v.min_x();//tpc0 ? pt_v.min_x() : pt_v.max_x();
       res.tpc_point.x = res.tpc_point.y = res.tpc_point.z = kINVALID_DOUBLE;
       // Find point with min x
       for(auto const& pt : pt_v) {
@@ -189,9 +189,9 @@ namespace flashmatch {
               res.tpc_point.z = pt.z;
           }
       }
-      std::cout << flash.time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << " " << res.tpc_point.x << std::endl;
+      //std::cout << flash.time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << " " << res.tpc_point.x << std::endl;
       res.tpc_point.x = res.tpc_point.x + (tpc0 ? -1.0 : 1.0) * flash.time * DetectorSpecs::GetME().DriftVelocity();
-      std::cout << res.tpc_point.x << std::endl;
+      //std::cout << res.tpc_point.x << std::endl;
       //res.hypothesis = flash.pe_v;
       Flash_t hypothesis;
       FillEstimate(pt_v, hypothesis);
@@ -206,9 +206,9 @@ namespace flashmatch {
     if (_check_touching_track || (pt_v.max_x() - pt_v.min_x() >= DetectorSpecs::GetME().ActiveVolume().Max()[0] - DetectorSpecs::GetME().ActiveVolume().Min()[0])) {
         double score = _check_touching_track ? 10.0 : 20.0;
         double time_tpc0 = (pt_v.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) / DetectorSpecs::GetME().DriftVelocity();
-        double time_tpc1 = (DetectorSpecs::GetME().ActiveVolume().Max()[0] - pt_v.min_x()) / DetectorSpecs::GetME().DriftVelocity();
+        double time_tpc1 = (DetectorSpecs::GetME().ActiveVolume().Max()[0] - pt_v.max_x()) / DetectorSpecs::GetME().DriftVelocity();
         // if (std::fabs(pt_v.time_true - flash.time_true) < 1) {
-        //     std::cout << flash.time << " " << time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << std::endl;
+        //     std::cout << flash.time << " " << time_tpc0 << " " << time_tpc1 << " " << pt_v.min_x() << " " << pt_v.max_x() << " " << flash.time_true << " " << pt_v.time_true << std::endl;
         // }
         if (std::fabs(flash.time - time_tpc0) < _touching_track_window) { // within 10us?
             //std::cout << "\t\t\t ************** Touching track ******************* " << std::endl;

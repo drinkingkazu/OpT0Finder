@@ -64,8 +64,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
             if not out_file:
                 print('Match ID',idx)
-                msg = '  TPC/PMT IDs %d/%d Correct? %s Score %f Trunc. %f ... reco vs. true: X %f vs. %f, PE %f vs. %f, Time %f vs. %f'
-                msg = msg % (tpc.idx, pmt.idx, correct_match, match.score, truncation, match.tpc_point.x, true_minx,
+                msg = '  TPC/PMT IDs %d/%d Correct? %s Score %f Trunc. %f ... reco vs. true: X %f vs. (%f, %f), PE %f vs. %f, Time %f vs. %f'
+                msg = msg % (tpc.idx, pmt.idx, correct_match, match.score, truncation, match.tpc_point.x, true_minx, true_maxx,
                              np.sum(match.hypothesis), np.sum(pmt.pe_v), tpc.time_true, pmt.time_true)
                 print(msg)
                 continue
