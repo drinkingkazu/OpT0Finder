@@ -1,53 +1,6 @@
 from flashmatch import flashmatch
 import numpy as np
 
-class ManagerAPI:
-    """
-    FlashMatchManager simple wrapper
-    """
-    def __init__(self,cfg=None):
-        self.mgr=flashmatch.FlashMatchManager()
-        self.cfg=None
-        if cfg is not None:
-            self.configure(cfg)
-            
-    def configure(self,cfg):
-        """
-        Configure FlashMatchManager
-        """
-        self.cfg = flashmatch.CreatePSetFromFile(cfg)
-        self.mgr.Configure(self.cfg)
-
-    def dump_config(self):
-        """
-        Dump configuration
-        """
-        if self.cfg is None: return
-        return self.cfg.dump()
-
-    def FlashHypothesis(self,qcluster):
-        """
-        Fill flash hypothesis for a provided QCluster
-        """
-        flash_algo = self.mgr.GetAlgo(flashmatch.kFlashHypothesis)
-        flash = flashmatch.Flash_t()
-        flash_algo.FillEstimate(qcluster, flash)
-        return flash
-
-    def QCluster(self,xs,ys,zs):
-        """
-        If LightPath algorithm is available, use it to generate QCluster_t
-        """
-        xyzs = np.column_stack([xs,ys,zs]).astype(np.float32)
-        traj = as_geoalgo_trajectory(xyzs)
-        qcluster_algo = self.mgr.GetCustomAlgo("LightPath")
-        return qcluster_algo.MakeQCluster(traj)
-
-    def OffsetQCluster(self, qcluster, xoffset):
-        xoffset = qcluster.min_x() - xoffset - flashmatch.DetectorSpecs.GetME().ActiveVolume().Min()[0]
-        qcluster = qcluster - xoffset
-        return qcluster
-    
 class FlashMatchInput:
     def __init__(self):
         # input array of flashmatch::Flash_t
@@ -58,7 +11,121 @@ class FlashMatchInput:
         self.raw_qcluster_v = []
         # True matches, an array of integer-pairs.
         self.true_match = []
-        
+
+
+class AnalysisManager(object):
+    """
+    FlashMatchManager simple wrapper
+    """
+    def __init__(self, cfg, particleana='', opflashana=''):
+        self.configure(cfg, particleana, opflashana)
+
+
+    def configure(self,cfg,particleana='',opflashana=''):
+        """
+        Configure FlashMatchManager
+        """
+        import os
+        self.cfg = flashmatch.CreatePSetFromFile(cfg)
+        self.matcher=flashmatch.FlashMatchManager()
+        self.matcher.Configure(self.cfg)
+        if not particleana and not opflashana:
+            from .toymc import ToyMC
+            self.reader=ToyMC(cfg)
+        else:
+            from .rootinput import ROOTInput
+            if not os.path.isfile(particleana):
+                print('File not found:',particleana)
+                raise FileNotFoundError
+            if not os.path.isfile(opflashana):
+                print('File not found:',opflashana)
+                raise FileNotFoundError
+            self.reader=ROOTInput(particleana,opflashana,cfg)
+
+
+    def dump_config(self):
+        """
+        Dump configuration
+        """
+        if self.cfg is None: return
+        return self.cfg.dump()
+
+
+    def make_flashmatch_input(self, entry):
+        """
+        Create flash matching input
+        INPUT:
+          - entry ... integer key to generate data (a sequential data entry index
+            for ROOTInput, number of trajectory to generate for ToyMC)
+        RETURN:
+          - FlashMatchInput class instance
+        """
+        return self.reader.make_flashmatch_input(entry)
+
+
+    def event_id(self,entry_id):
+        """
+        Convert "entry id" to "event id"
+        """
+        from .rootinput import ROOTInput
+        if not isinstance(self.reader, ROOTInput):
+            return -1
+        return self.reader.event_id(entry_id)
+
+
+    def entry_id(self,event_id):
+        """
+        Convert "event id" to "entry id"
+        """
+        from .rootinput import ROOTInput
+        if not isinstance(self.reader, ROOTInput):
+            return -1
+        return self.reader.entry_id(event_id)
+
+
+    def entries(self):
+        """
+        Returns a list of "entry ids" (only for ROOTInput)
+        """
+        from .rootinput import ROOTInput
+        if not isinstance(self.reader, ROOTInput):
+            return []
+        return np.arange(len(self.reader))
+
+
+    def flash_hypothesis(self,qcluster):
+        """
+        Fill flash hypothesis for a provided QCluster
+        """
+        flash_algo = self.matcher.GetAlgo(flashmatch.kFlashHypothesis)
+        flash = flashmatch.Flash_t()
+        flash_algo.FillEstimate(qcluster, flash)
+        return flash
+
+
+    def offset_qcluster(self, qcluster, xoffset):
+        """
+        Shifts a qcluster by the specified offset, returns a new qcluster
+        """
+        xoffset = qcluster.min_x() - xoffset - flashmatch.DetectorSpecs.GetME().ActiveVolume().Min()[0]
+        qcluster = qcluster - xoffset
+        return qcluster
+
+
+    def run_flash_match(self,match_input):
+        """
+        Runs flash matching, the input type should be FlashMatchInput
+        """
+        # Register for matching
+        self.matcher.Reset()
+        for pmt in match_input.flash_v:
+            self.matcher.Add(pmt)
+        for tpc in match_input.qcluster_v:
+            self.matcher.Add(tpc)
+        # Run matching
+        return self.matcher.Match()
+
+
 def print_history(self,mgr):
     """
     Print history of the last minimization if stored
@@ -95,4 +162,3 @@ def dump_geo():
     cz=(bbox.Max()[2]-bbox.Min()[2])/2. + bbox.Min()[2]
     for opch in range(s.NOpDets()):
         print('PMT',opch,'Visibility',s.GetVisibility(cx,cy,cz,opch))
-

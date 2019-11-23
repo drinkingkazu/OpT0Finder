@@ -1,6 +1,4 @@
-from flashmatch import flashmatch
-from toymc import ToyMC
-from rootinput import ROOTInput
+from flashmatch import flashmatch,AnalysisManager
 import numpy as np
 
 def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):
@@ -13,44 +11,31 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
       out_file:   string for an output analysis csv file path (optional)
       num_tracks: int for number of tracks to be generated (optional)
     """
-    # create & configure flash match manager
+    # create & configure manager API
+    mgr = AnalysisManager(cfg_file,particleana,opflashana)
     cfg = flashmatch.CreatePSetFromFile(cfg_file)
     # dump config
-    sys.stdout.write(cfg.dump())
+    sys.stdout.write(mgr.dump_config())
     sys.stdout.flush()
-
-    # configure
-    mgr = flashmatch.FlashMatchManager()
-    mgr.Configure(cfg)
     # override number of tracks to simulate
     if num_tracks is not None:
         num_tracks = int(num_tracks)
 
-    entries,ihandler = None,None
-    if particleana is None and opflashana is None:
-        ihandler = ToyMC(cfg_file)
-        entries = range(repeat)
-    else:
-        ihandler = ROOTInput(opflashana,particleana,cfg_file)
-        entries  = range(len(ihandler))
-        num_tracks = None
-        print('Found %d events' % len(entries))
+    entries=mgr.entries()
+    toymc=False
+    if len(entries) < 1:
+        toymc=True
+        entries = np.arange(repeat)
 
     np_result = None
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
         sys.stdout.flush()
         # Generate samples
-        generator_arg = entry if isinstance(ihandler,ROOTInput) else num_tracks
-        match_input = ihandler.make_flashmatch_input(generator_arg)
-        # Register for matching
-        mgr.Reset()
-        for pmt in match_input.flash_v:
-            mgr.Add(pmt)
-        for tpc in match_input.qcluster_v:
-            mgr.Add(tpc)
-        # Run matching
-        match_v = mgr.Match()
+        generator_arg = entry if not toymc else num_tracks
+        print(generator_arg)
+        match_input = mgr.make_flashmatch_input(generator_arg)
+        match_v = mgr.run_flash_match(match_input)
 
         # If no analysis output saving option given, return
         if not out_file:

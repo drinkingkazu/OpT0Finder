@@ -1,10 +1,10 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
-from utils import FlashMatchInput
+from .utils import FlashMatchInput
 
 class ROOTInput:
-    def __init__(self, opflashana, particleana, cfg_file=None):
+    def __init__(self, particleana, opflashana, cfg_file=None):
         self.det = flashmatch.DetectorSpecs.GetME()
         self.geoalgo = geoalgo.GeoAlgo()
         self._qcluster_algo  = None
@@ -18,8 +18,11 @@ class ROOTInput:
         # Check data consistency
         self._entries_to_event = np.unique(self._particles['event']).astype(np.int32)
 
-    def event_id(self,entry):
-        return self._entries_to_event(entry)
+    def event_id(self,entry_id):
+        return self._entries_to_event[entry_id]
+
+    def entry_id(self,event_id):
+        return np.where(self._entries_to_event == event_id)[0][0]
 
     def __len__(self):
         return len(self._entries_to_event)
@@ -74,16 +77,18 @@ class ROOTInput:
                 continue
             xyzs = np.column_stack([p['x_v'],p['y_v'],p['z_v']]).astype(np.float64)
             traj = flashmatch.as_geoalgo_trajectory(xyzs)
-            # If configured, truncate the physical boundary here
-            # (before shifting or readout truncation)
-            if self._truncate_tpc_active:
-                bbox = self.det.ActiveVolume()
-                traj = self.geoalgo.BoxOverlap(bbox,traj)
             # Need at least 2 points to make QCluster
             if traj.size() < 2: continue;
             # Make QCluster
             qcluster = self._qcluster_algo.MakeQCluster(traj)
-
+            # If configured, truncate the physical boundary here
+            if self._truncate_tpc_active:
+                bbox = self.det.ActiveVolume()
+                pt_min, pt_max = bbox.Min(), bbox.Max()
+                qcluster.drop(pt_min[0],pt_min[1],pt_min[2],
+                              pt_max[0],pt_max[1],pt_max[2])
+            # need to be non-empty
+            if qcluster.empty(): continue
             ts=p['time_v']
             qcluster.time_true = np.min(ts) * 1.e-3
 
@@ -124,9 +129,11 @@ class ROOTInput:
         """
         Make sample from ROOT files
         """
+        if entry > len(self):
+            raise IndexError
         result = FlashMatchInput()
         # Find the list of sim::MCTrack entries for this event
-        opflash, particles = self.get_entry(entry)
+        particles, opflash = self.get_entry(entry)
         result.raw_qcluster_v = self.make_qcluster(particles,select_pdg=[13])
         result.qcluster_v = [flashmatch.QCluster_t(tpc) for tpc in result.raw_qcluster_v]
         # If configured, shift X (for MCTrack to immitate reco)

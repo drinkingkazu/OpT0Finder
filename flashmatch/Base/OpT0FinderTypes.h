@@ -116,6 +116,10 @@ namespace flashmatch {
     /// drop points outside the x range specified
     void drop(double xmin, double xmax);
 
+    /// drop points outside xyz range specified
+    void drop(double xmin, double ymin, double zmin,
+              double xmax, double ymax, double zmax);
+
     /// minimum x
     inline double min_x() const
     { double x=flashmatch::kINVALID_DOUBLE; for(auto const& pt : (*this)) x = std::min(x,pt.x); return x; }

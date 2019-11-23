@@ -1,7 +1,7 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
-from utils import FlashMatchInput
+from .utils import FlashMatchInput
 
 class ToyMC:
     def __init__(self, cfg_file=None):
@@ -72,7 +72,7 @@ class ToyMC:
           a list of geoalgo::Trajectory, flashmatch::QClusterArray_t, and flashmatch::FLashArray_t
         """
         result = FlashMatchInput()
-        
+
         if num_match is None:
             num_match = self._num_tracks
         # Generate 3D trajectories inside the detector
@@ -222,4 +222,3 @@ class ToyMC:
             flash.pe_err_v[idx]=np.sqrt(estimate) # only good for high npe
 
         return flash
-
