@@ -40,7 +40,7 @@ namespace flashmatch {
       QCluster_t trk = old_trk;
     if (_extend_tracks) {
         double min_x = kINVALID_DOUBLE; double max_x = -kINVALID_DOUBLE;
-        size_t min_idx_x = 0; size_t max_idx_x = 0;
+        size_t min_idx = 0; size_t max_idx = 0;
         for (size_t pt_index = 0; pt_index < trk.size(); ++pt_index) {
             if (trk[pt_index].x < min_x) {
                 min_x = trk[pt_index].x;
