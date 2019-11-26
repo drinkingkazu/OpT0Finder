@@ -54,6 +54,13 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                           dict(label='Only Raw QCluster',value='only_raw_qcluster')],
                                  value='no_raw_qcluster'),],
                  style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
+        html.Div([html.Label('Raw QCluster to be shown should be:',
+                             style=label_text_style),
+                  dcc.RadioItems(id='use_all_pts',
+                                 options=[dict(label='Before X-shift',value='raw_qcluster'),
+                                          dict(label='... and before active BB cut',value='all_pts')],
+                                 value='raw_cluster'),],
+                 style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
         html.Div([html.Label('Select QCluster_t to display', style=label_text_style),
                  ],style={'padding': '5px'}),
         html.Div([dcc.Dropdown(id='select_qcluster',
@@ -75,7 +82,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                multi=True),
                  ],style={'padding': '5px'}),
         html.Div([dcc.Graph(id='visdata',figure=_manager.empty_view)],style={'padding': '5px'}),
+        #
         # Hypothesis event display
+        #
         html.H2('Hypothesis playground: move QCluster along x!',style=header_text_style),
 
         html.Div([html.Label('X Offset', style=label_text_style),
@@ -165,10 +174,11 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                    dash.dependencies.Input("select_flash","value"),
                    dash.dependencies.Input("mode_flash","value"),
                    dash.dependencies.Input("mode_qcluster","value"),
+                   dash.dependencies.Input("use_all_pts","value"),
                    dash.dependencies.Input("entry_or_event","value"),
                    dash.dependencies.Input("data_index","value")]
                  )
-    def update_static(select_qcluster, select_flash, mode_flash, mode_qcluster, entry_or_event, data_index):
+    def update_static(select_qcluster, select_flash, mode_flash, mode_qcluster, use_all_pts, entry_or_event, data_index):
         """
         Update "visdata" 3D display for change in event/entry and/or selection of flash/qcluster
         """
@@ -178,8 +188,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         elif mode_qcluster == 'with_raw_qcluster': mode_qcluster=1
         elif mode_qcluster == 'only_raw_qcluster': mode_qcluster=2
         else: raise ValueError
+        use_all_pts = True if use_all_pts == 'all_pts' else False
         if data_index is None: raise dash.exceptions.PreventUpdate
-        fig = _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, mode_flash, mode_qcluster)
+        fig = _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, mode_flash, mode_qcluster, use_all_pts)
         if fig is None: raise dash.exceptions.PreventUpdate
         else: return fig
 

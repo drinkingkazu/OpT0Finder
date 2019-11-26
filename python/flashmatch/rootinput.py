@@ -71,6 +71,7 @@ class ROOTInput:
 
     def make_qcluster(self,particles,select_pdg=[]):
         qcluster_v = []
+        all_pts_v  = []
         for p_idx, p in enumerate(particles):
             # Only use specified PDG code if pdg_code is available
             if len(select_pdg) and int(p['pdg_code']) not in select_pdg:
@@ -81,6 +82,7 @@ class ROOTInput:
             if traj.size() < 2: continue;
             # Make QCluster
             qcluster = self._qcluster_algo.MakeQCluster(traj)
+            all_pts  = flashmatch.QCluster_t(qcluster)
             # If configured, truncate the physical boundary here
             if self._truncate_tpc_active:
                 bbox = self.det.ActiveVolume()
@@ -91,7 +93,7 @@ class ROOTInput:
             if qcluster.empty(): continue
             ts=p['time_v']
             qcluster.time_true = np.min(ts) * 1.e-3
-
+            all_pts.time_true = qcluster.time_true
             # if qcluster.min_x() < -365:
             #     print("touching ", qcluster.min_x(), qcluster.time_true)
             #if qcluster.min_x() < self.det.ActiveVolume().Min()[0]:
@@ -99,9 +101,10 @@ class ROOTInput:
 
             # Assign the index number of a particle
             qcluster.idx = p_idx
-
+            all_pts.idx = p_idx
             qcluster_v.append(qcluster)
-        return qcluster_v
+            all_pts_v.append(all_pts)
+        return qcluster_v,all_pts_v
 
 
     def make_flash(self,opflash):
@@ -134,7 +137,7 @@ class ROOTInput:
         result = FlashMatchInput()
         # Find the list of sim::MCTrack entries for this event
         particles, opflash = self.get_entry(entry)
-        result.raw_qcluster_v = self.make_qcluster(particles,select_pdg=[13])
+        result.raw_qcluster_v,result.all_pts_v = self.make_qcluster(particles,select_pdg=[13])
         result.qcluster_v = [flashmatch.QCluster_t(tpc) for tpc in result.raw_qcluster_v]
         # If configured, shift X (for MCTrack to imitate reco)
         if self._shift_tpc:

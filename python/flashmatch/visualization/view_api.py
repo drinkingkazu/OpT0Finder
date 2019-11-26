@@ -35,6 +35,7 @@ class DataManager:
             self.cpp = manager.make_flashmatch_input(entry)
             self.np_qcluster_v     = [flashmatch.as_ndarray(qcluster) for qcluster in self.cpp.qcluster_v    ]
             self.np_raw_qcluster_v = [flashmatch.as_ndarray(qcluster) for qcluster in self.cpp.raw_qcluster_v]
+            self.np_all_pts_v      = [flashmatch.as_ndarray(qcluster) for qcluster in self.cpp.all_pts_v     ]
             self.np_flash_v        = [flashmatch.as_ndarray(flash)    for flash    in self.cpp.flash_v       ]
             self.entry = entry
             self.event = manager.event_id(entry)
@@ -124,7 +125,7 @@ class AppManager:
         dropdown_flash += [dict(label='All flashes',value=len(target_v))]
         return dropdown_flash
 
-    def event_display(self, data_index, qcluster_idx_v, flash_idx_v, is_entry, mode_flash, mode_qcluster):
+    def event_display(self, data_index, qcluster_idx_v, flash_idx_v, is_entry, mode_flash, mode_qcluster, use_all_pts):
         """
         Generate 3D display for change in event/entry and/or selection of flash/qcluster
         """
@@ -151,7 +152,7 @@ class AppManager:
                                         )
                     data.append(trace)
                 if mode_qcluster in [1,2]:
-                    xyz = self.dat_manager.np_raw_qcluster_v[idx]
+                    xyz = self.dat_manager.np_raw_qcluster_v[idx] if not use_all_pts else self.dat_manager.np_all_pts_v[idx]
                     name = 'Track (Raw) %02d (%d pts)' % (self.dat_manager.cpp.qcluster_v[idx].idx,len(xyz))
                     trace = go.Scatter3d(x=xyz[:,0],y=xyz[:,1],z=xyz[:,2],mode='markers',
                                          name=name,
