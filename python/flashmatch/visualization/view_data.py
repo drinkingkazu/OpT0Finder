@@ -4,7 +4,7 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 from .view_api import AppManager
 
-def view_data(cfg,geo,data_particle,data_opflash):
+def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
     """
     Visualized OpT0Finder input data as well as FlashHypothesis for varying x-position
     INPUT:
@@ -12,8 +12,10 @@ def view_data(cfg,geo,data_particle,data_opflash):
       - geo ... vis_icarus (geometry) data file in either PSet or yaml format
       - data_particle ... particle data file stored by ICARUSParticleAna_module
       - data_opflash ... OpFlash data file stored by ICARUSOpFlashAna_module
+      - dark_mode ... use dark theme dash app
+      - port ... set the custom port id for dash app
     """
-    _manager = AppManager(cfg=cfg, geo=geo, data_particle=data_particle, data_opflash=data_opflash)
+    _manager = AppManager(cfg=cfg, geo=geo, data_particle=data_particle, data_opflash=data_opflash, dark_mode=dark_mode)
     entry = 0
     xmin = _manager.vis_icarus.data()['tpc0'][0][0]
     xmax = _manager.vis_icarus.data()['tpc1'][1][0]
@@ -42,14 +44,16 @@ def view_data(cfg,geo,data_particle,data_opflash):
                   dcc.Input(id='data_index', value=str(entry), type='int')],
                  style={'width': '100%', 'display': 'inline-block', 'padding': '5px'}),
 
-        html.Div([html.Label('View PMTs with OpFlash or Hypothesis?',
-                             style=label_text_style),
-                  dcc.RadioItems(id='flash_or_hypo',
-                                 options=[dict(label='Flash',value='flash'),
-                                          dict(label='Hypothesis',value='hypothesis')],
-                                 value='flash'),],
-                 style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
         dcc.Loading(id="loading", children=[html.Div(id="wait_out")], type="default"),
+
+        html.Div([html.Label('Show also raw QClusters?',
+                             style=label_text_style),
+                  dcc.RadioItems(id='mode_qcluster',
+                                 options=[dict(label='No',value='no_raw_qcluster'),
+                                          dict(label='With Raw QCluster',value='with_raw_qcluster'),
+                                          dict(label='Only Raw QCluster',value='only_raw_qcluster')],
+                                 value='no_raw_qcluster'),],
+                 style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
         html.Div([html.Label('Select QCluster_t to display', style=label_text_style),
                  ],style={'padding': '5px'}),
         html.Div([dcc.Dropdown(id='select_qcluster',
@@ -57,10 +61,17 @@ def view_data(cfg,geo,data_particle,data_opflash):
                                multi=True),
                  ],style={'padding': '5px'}),
 
+        html.Div([html.Label('View PMTs with OpFlash or Hypothesis?',
+                             style=label_text_style),
+                  dcc.RadioItems(id='mode_flash',
+                                 options=[dict(label='Flash',value='flash'),
+                                          dict(label='Hypothesis',value='hypothesis')],
+                                 value='flash'),],
+                 style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
         html.Div([html.Label('Select Flash_t to display', style=label_text_style),
                  ],style={'padding': '5px'}),
         html.Div([dcc.Dropdown(id='select_flash',
-                               options=_manager.dropdown_flash(entry,is_entry=True,is_hypothesis=False),
+                               options=_manager.dropdown_flash(entry,is_entry=True,mode_flash=True),
                                multi=True),
                  ],style={'padding': '5px'}),
         html.Div([dcc.Graph(id='visdata',figure=_manager.empty_view)],style={'padding': '5px'}),
@@ -89,12 +100,12 @@ def view_data(cfg,geo,data_particle,data_opflash):
     # call backs
     #
     @app.callback(dash.dependencies.Output("wait_out", "children"),
-                  [dash.dependencies.Input("flash_or_hypo", "value")])
-    def load_plib(flash_or_hypo):
-        if flash_or_hypo == 'hypothesis':
+                  [dash.dependencies.Input("mode_flash", "value")])
+    def load_plib(mode):
+        if mode == 'hypothesis':
             from flashmatch import phot
             phot.PhotonVisibilityService.GetME().LoadLibrary()
-        return flash_or_hypo
+        return mode
 
     @app.callback(dash.dependencies.Output("select_qcluster","options"),
                   [dash.dependencies.Input("entry_or_event","value"),
@@ -123,35 +134,40 @@ def view_data(cfg,geo,data_particle,data_opflash):
     @app.callback(dash.dependencies.Output("select_flash","options"),
                   [dash.dependencies.Input("entry_or_event","value"),
                    dash.dependencies.Input("data_index","value"),
-                   dash.dependencies.Input("flash_or_hypo","value")])
-    def update_dropdown_flash(entry_or_event,data_index,flash_or_hypo):
+                   dash.dependencies.Input("mode_flash","value")])
+    def update_dropdown_flash(entry_or_event,data_index,mode_flash):
         """
         Update drop-down "select_flash" options for Flash when event/entry is changed
         """
         is_entry = entry_or_event == 'entry'
-        is_hypothesis = flash_or_hypo == 'hypothesis'
+        mode_flash = mode_flash == 'hypothesis'
         if data_index is None or (int(data_index) == _manager.current_data_index(is_entry=is_entry)
-                                  and not is_hypothesis):
+                                  and not mode_flash):
             raise dash.exceptions.PreventUpdate
         return _manager.dropdown_flash(data_index=int(data_index),
                                        is_entry=is_entry,
-                                       is_hypothesis=is_hypothesis)
+                                       mode_flash=mode_flash)
 
     @app.callback(dash.dependencies.Output("visdata","figure"),
                   [dash.dependencies.Input("select_qcluster","value"),
                    dash.dependencies.Input("select_flash","value"),
-                   dash.dependencies.Input("flash_or_hypo","value"),
+                   dash.dependencies.Input("mode_flash","value"),
+                   dash.dependencies.Input("mode_qcluster","value"),
                    dash.dependencies.Input("entry_or_event","value"),
                    dash.dependencies.Input("data_index","value")]
                  )
-    def update_static(select_qcluster, select_flash, flash_or_hypo, entry_or_event, data_index):
+    def update_static(select_qcluster, select_flash, mode_flash, mode_qcluster, entry_or_event, data_index):
         """
         Update "visdata" 3D display for change in event/entry and/or selection of flash/qcluster
         """
         is_entry = entry_or_event == 'entry'
-        is_hypothesis = flash_or_hypo == 'hypothesis'
+        mode_flash = mode_flash == 'flash'
+        if mode_qcluster == 'no_raw_qcluster': mode_qcluster = 0
+        elif mode_qcluster == 'with_raw_qcluster': mode_qcluster=1
+        elif mode_qcluster == 'only_raw_qcluster': mode_qcluster=2
+        else: raise ValueError
         if data_index is None: raise dash.exceptions.PreventUpdate
-        return _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, is_hypothesis)
+        return _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, mode_flash, mode_qcluster)
 
     @app.callback(dash.dependencies.Output("playdata","figure"),
                   [dash.dependencies.Input("target_qcluster","value"),
@@ -168,4 +184,4 @@ def view_data(cfg,geo,data_particle,data_opflash):
             raise dash.exceptions.PreventUpdate
         return _manager.hypothesis_display(int(data_index), target_qcluster, is_entry, float(xoffset))
 
-    app.server.run()
+    app.server.run(port=port)
