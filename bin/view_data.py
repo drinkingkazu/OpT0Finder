@@ -25,16 +25,16 @@ parser.add_argument('-c','--cfg', type=str, default=cfg,
                     help='Flash matching (OpT0Finder) PSet config file [default: %s]' % cfg)
 parser.add_argument('-g','--geo_cfg', type=str, default=geo,
                     help='Detector geometry data yaml/PSet data file [default: %s]' % geo)
-parser.add_argument('-d','--dark_mode', type=bool, default=dark_mode,
+parser.add_argument('-d','--dark_mode', type=str, default=str(dark_mode),
                     help='Dark mode in plotting [default: %s]' % dark_mode)
 
 args=parser.parse_args()
-
+import ast
 cfg = args.cfg
 geo = args.geo_cfg
 data_particle = args.particle_data
 data_opflash = args.opflash_data
-dark_mode = bool(args.dark_mode)
+dark_mode = bool(ast.literal_eval(args.dark_mode))
 port = int(args.port)
 if data_particle is None:
     sys.stderr.write('-p --particle_data (particle data file) argument is required!\n')
