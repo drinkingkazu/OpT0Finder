@@ -18,7 +18,6 @@ class DataManager:
         self.event = -1
         self.hypothesis_made = False
 
-
     def update(self,manager,entry,is_entry=True,make_hypothesis=False):
         """
         Given flashmatch.AnalysisManager, which can interface input data stream and OpT0Finder tools,
@@ -73,6 +72,23 @@ class AppManager:
         self.layout = icarus_layout3d(self.vis_icarus.data(),set_camera=False,dark=self.dark_mode)
         self.empty_view = go.Figure(self.detector_trace,layout=self.layout)
 
+    def valid_data_entry(self,entry,is_entry):
+        """
+        Returns data entry given a valid data index (exist in file) or None
+        INPUTS:
+          - entry ... either data index ... entry or event id
+          - is_entry ... False if the input data_index is event id
+        """
+        if not is_entry:
+            try:
+                entry = self.ana_manager.entry_id(entry)
+                return entry
+            except IndexError:
+                return None
+        if entry < 0 or entry >= len(self.ana_manager.entries()):
+            return None
+        return entry
+
     def current_data_index(self,is_entry):
         """
         Returns current "data index"
@@ -116,7 +132,7 @@ class AppManager:
         idx_v  = [flash.idx for flash in self.dat_manager.cpp.flash_v]
         time_v = np.zeros(shape=[len(target_v)])
         if mode_flash: time_v = [flash.time for flash in self.dat_manager.cpp.flash_v]
-        dropdown_flash  = [dict(label='Flash %02d (t=%f us  PE=%d)' % (idx_v[idx],
+        dropdown_flash  = [dict(label='Flash %02d (t=%f us  PE=%dE2)' % (idx_v[idx],
                                                                        time_v[idx],
                                                                        int(flash.sum()/100.)
                                                                       ),
@@ -125,7 +141,8 @@ class AppManager:
         dropdown_flash += [dict(label='All flashes',value=len(target_v))]
         return dropdown_flash
 
-    def event_display(self, data_index, qcluster_idx_v, flash_idx_v, is_entry, mode_flash, mode_qcluster, use_all_pts):
+    def event_display(self, data_index, qcluster_idx_v, flash_idx_v,
+                      is_entry, mode_flash, mode_qcluster, use_all_pts, pmt_range):
         """
         Generate 3D display for change in event/entry and/or selection of flash/qcluster
         """
@@ -167,13 +184,15 @@ class AppManager:
             pmt_val = None
             if len(target_v) in flash_idx_v: pmt_val = np.sum(target_v,axis=0)
             else: pmt_val = np.sum(np.column_stack([target_v[idx] for idx in flash_idx_v]),axis=1)
-            name = 'Flash (%f PEs)' % np.sum(pmt_val)
+            pmt_range[0] = np.min(pmt_val) if pmt_range[0].lower() == 'min' else float(pmt_range[0])
+            pmt_range[1] = np.max(pmt_val) if pmt_range[1].lower() == 'max' else float(pmt_range[1])
+            name = 'Flash (%dE2 PEs)' % int(np.sum(pmt_val)/100.)
             if(len(flash_idx_v)==1 and mode_flash):
-                name = 'Flash (%f PEs @ %f us)' % (np.sum(pmt_val), cpp_target_v[flash_idx_v[0]].time)
+                name = 'Flash (%dE2 PEs @ %f us)' % (int(np.sum(pmt_val)/100.), int(cpp_target_v[flash_idx_v[0]].time))
             trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
                                  name=name,
                                  #template='plotly' if not self.dark_mode else 'plotly_dark',
-                                 marker = dict(size=6, color=pmt_val, opacity=0.5)
+                                 marker = dict(size=6, color=pmt_val, opacity=0.5, cmin=pmt_range[0], cmax=pmt_range[1])
                                 )
             data.append(trace)
         elif len(data):

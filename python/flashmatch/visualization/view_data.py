@@ -28,8 +28,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                     external_stylesheets= ['https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css)']
                    )
     header_text_style = dict(fontFamily='Georgia', fontWeight=300, fontSize=26)
+    span_text_style = dict(fontFamily='Georgia', fontWeight=600, fontSize=24, color='navy')
     label_text_style = dict(fontFamily='Georgia', fontWeight=300, fontSize=20)
-
+    para_text_style = dict(fontFamily='Georgia', fontWeight=300, fontSize=16)
     app.layout = html.Div([
         html.H2('Flash Matching Data Viewer', style=header_text_style),
 
@@ -43,9 +44,17 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                  value='entry'),
                   dcc.Input(id='data_index', value=str(entry), type='int')],
                  style={'width': '100%', 'display': 'inline-block', 'padding': '5px'}),
-
+        html.Div(id='error_entry'),
         dcc.Loading(id="loading", children=[html.Div(id="wait_out")], type="default"),
-
+        #
+        # TPC options
+        #
+        html.Div([html.Span('Select QCluster_t to display', style=span_text_style),
+                 ],style={'padding': '5px'}),
+        html.Div([dcc.Dropdown(id='select_qcluster',
+                               options=_manager.dropdown_qcluster(entry,is_entry=True),
+                               multi=True),
+                 ],style={'padding': '5px'}),
         html.Div([html.Label('Show also raw QClusters?',
                              style=label_text_style),
                   dcc.RadioItems(id='mode_qcluster',
@@ -61,13 +70,16 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                           dict(label='... and before active BB cut',value='all_pts')],
                                  value='raw_qcluster'),],
                  style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
-        html.Div([html.Label('Select QCluster_t to display', style=label_text_style),
+
+        #
+        # PMT options
+        #
+        html.Div([html.Span('Select Flash_t to display', style=span_text_style),
                  ],style={'padding': '5px'}),
-        html.Div([dcc.Dropdown(id='select_qcluster',
-                               options=_manager.dropdown_qcluster(entry,is_entry=True),
+        html.Div([dcc.Dropdown(id='select_flash',
+                               options=_manager.dropdown_flash(entry,is_entry=True,mode_flash=True),
                                multi=True),
                  ],style={'padding': '5px'}),
-
         html.Div([html.Label('View PMTs with OpFlash or Hypothesis?',
                              style=label_text_style),
                   dcc.RadioItems(id='mode_flash',
@@ -75,29 +87,32 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                           dict(label='Hypothesis',value='hypothesis')],
                                  value='flash'),],
                  style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
-        html.Div([html.Label('Select Flash_t to display', style=label_text_style),
-                 ],style={'padding': '5px'}),
-        html.Div([dcc.Dropdown(id='select_flash',
-                               options=_manager.dropdown_flash(entry,is_entry=True,mode_flash=True),
-                               multi=True),
-                 ],style={'padding': '5px'}),
-        #html.Div([html.Label('Event display (all selected flash combined)')])
-        html.Div([dcc.Graph(id='visdata',figure=_manager.empty_view)],style={'padding': '5px'}),
+        html.Div([html.Label('PMT color scale: ', style=label_text_style),
+                  html.Br(),
+                  dcc.Input(id='pmt_cmin', value='min', type='str'),# style={'padding':'5px'}),
+                  html.Label(' to ', style=label_text_style),
+                  dcc.Input(id='pmt_cmax', value='max', type='str'),# style={'padding':'5px'}),
+                  html.Label(' (type "min" and "max" for automatic range setting)', style=para_text_style),
+                 ], style={'width': '100%', 'display': 'inline-block', 'padding': '5px'}),
+        html.Div(id='error_pmt_range'),
+        html.Div([dcc.Graph(id='visdata',figure=_manager.empty_view)],
+                  style={'padding':'5px'}),
+
         #
         # Hypothesis event display
         #
         html.H2('Hypothesis playground: move QCluster along x!',style=header_text_style),
 
-        html.Div([html.Label('X Offset', style=label_text_style),
-                 ],style={'padding': '5px'}),
-        html.Div([dcc.Slider(id='xoffset',min=xmin,max=xmax,step=1.,value=xmin),
-                 ],style={'padding': '5px'}),
-
-        html.Div([html.Label('Select QCluster to display', style=label_text_style),
+        html.Div([html.Span('Select QCluster to display', style=span_text_style),
                  ],style={'padding': '5px'}),
         html.Div([dcc.Dropdown(id='target_qcluster',
                                options=_manager.dropdown_qcluster(entry,is_entry=True),
                                multi=True),
+                 ],style={'padding': '5px'}),
+
+        html.Div([html.Label('X Offset', style=label_text_style),
+                 ],style={'padding': '5px'}),
+        html.Div([dcc.Slider(id='xoffset',min=xmin,max=xmax,step=1.,value=xmin),
                  ],style={'padding': '5px'}),
         #dcc.Loading(id="loading-playdata",
         #            children=[html.Div([dcc.Graph(id='playdata',figure=_manager.empty_view)],
@@ -109,6 +124,48 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
     #
     # call backs
     #
+    @app.callback(dash.dependencies.Output("error_entry", "children"),
+                  [dash.dependencies.Input("entry_or_event","value"),
+                   dash.dependencies.Input("data_index","value")])
+    def error_entry(entry_or_event,data_index):
+        is_entry = entry_or_event == 'entry'
+        if data_index is None:
+            raise dash.exceptions.PreventUpdate
+        if not data_index.isdigit():
+            return [html.Label("Invalid %s ID %s (not an integer)" % (entry_or_event,data_index),
+                               style={'color':'red'})]
+        data_index = int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
+            return [html.Label("Invalid %s ID %d (data does not exist)" % (entry_or_event,data_index),
+                               style={'color':'red'})]
+        else:
+            return ""
+
+    #
+    # call backs
+    #
+    @app.callback(dash.dependencies.Output("error_pmt_range", "children"),
+                  [dash.dependencies.Input("pmt_cmin","value"),
+                   dash.dependencies.Input("pmt_cmax","value")])
+    def error_entry(pmt_cmin,pmt_cmax):
+        pmt_cmin = str(pmt_cmin).lower()
+        pmt_cmax = str(pmt_cmax).lower()
+        cmin_good,cmax_good=True,True
+        try:
+            if not pmt_cmin == "min":
+                pmt_cmin = float(pmt_cmin)
+        except ValueError:
+            return [html.Label('Invalid PMT min value: %s (either numerical value or "min")' % pmt_cmin,
+                                style={'color':'red'})]
+        try:
+            if not pmt_cmax == "max":
+                pmt_cmax = float(pmt_cmax)
+        except ValueError:
+            return [html.Label('Invalid PMT max value: %s (either numerical value or "min")' % pmt_cmax,
+                                style={'color':'red'})]
+        return ""
+
+
     @app.callback(dash.dependencies.Output("wait_out", "children"),
                   [dash.dependencies.Input("mode_flash", "value")])
     def load_plib(mode):
@@ -128,6 +185,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         is_entry = entry_or_event == 'entry'
         if data_index is None or int(data_index) == _manager.current_data_index(is_entry=is_entry):
             raise dash.exceptions.PreventUpdate
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
+            raise dash.exceptions.PreventUpdate
         options = _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
         if options is None:
             print('Cannot find data for',entry_or_event,data_index)
@@ -144,6 +204,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         """
         is_entry = entry_or_event == 'entry'
         if data_index is None or int(data_index) == _manager.current_data_index(is_entry=is_entry):
+            raise dash.exceptions.PreventUpdate
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
             raise dash.exceptions.PreventUpdate
         options = _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
         if options is None: raise dash.exceptions.PreventUpdate
@@ -163,6 +226,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         if data_index is None or (int(data_index) == _manager.current_data_index(is_entry=is_entry)
                                   and not mode_flash):
             raise dash.exceptions.PreventUpdate
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
+            raise dash.exceptions.PreventUpdate
         options = _manager.dropdown_flash(data_index=int(data_index),
                                           is_entry=is_entry,
                                           mode_flash=mode_flash)
@@ -176,10 +242,14 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                    dash.dependencies.Input("mode_flash","value"),
                    dash.dependencies.Input("mode_qcluster","value"),
                    dash.dependencies.Input("use_all_pts","value"),
+                   dash.dependencies.Input("pmt_cmin","value"),
+                   dash.dependencies.Input("pmt_cmax","value"),
                    dash.dependencies.Input("entry_or_event","value"),
                    dash.dependencies.Input("data_index","value")]
                  )
-    def update_static(select_qcluster, select_flash, mode_flash, mode_qcluster, use_all_pts, entry_or_event, data_index):
+    def update_static(select_qcluster, select_flash, mode_flash, mode_qcluster, use_all_pts,
+                      pmt_cmin, pmt_cmax,
+                      entry_or_event, data_index):
         """
         Update "visdata" 3D display for change in event/entry and/or selection of flash/qcluster
         """
@@ -191,7 +261,25 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         else: raise ValueError
         use_all_pts = True if use_all_pts == 'all_pts' else False
         if data_index is None: raise dash.exceptions.PreventUpdate
-        fig = _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, mode_flash, mode_qcluster, use_all_pts)
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
+            raise dash.exceptions.PreventUpdate
+        pmt_range=[0,0]
+        if pmt_cmin.lower()=='min':
+            pmt_range[0]='min'
+        else:
+            try:
+                pmt_range[0]=str(float(pmt_cmin))
+            except ValueError:
+                raise dash.exceptions.PreventUpdate
+        if pmt_cmax.lower()=='max': pmt_range[1]='max'
+        else:
+            try:
+                pmt_range[1]=str(float(pmt_cmax))
+            except ValueError:
+                raise dash.exceptions.PreventUpdate
+        fig = _manager.event_display(int(data_index), select_qcluster, select_flash,
+                                     is_entry, mode_flash, mode_qcluster, use_all_pts, pmt_range)
         if fig is None: raise dash.exceptions.PreventUpdate
         else: return fig
 
@@ -208,6 +296,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         """
         is_entry = entry_or_event == 'entry'
         if data_index is None or target_qcluster is None or len(target_qcluster)<1:
+            raise dash.exceptions.PreventUpdate
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
             raise dash.exceptions.PreventUpdate
         fig = _manager.hypothesis_display(int(data_index), target_qcluster, is_entry, float(xoffset))
         if fig is None: raise dash.exceptions.PreventUpdate
