@@ -148,7 +148,7 @@ class AppManager:
                     trace = go.Scatter3d(x=xyz[:,0],y=xyz[:,1],z=xyz[:,2],mode='markers',
                                          name=name,
                                          #template='plotly' if not self.dark_mode else 'plotly_dark',
-                                         marker = dict(size=2, opacity=0.5, color=None if mode_qcluster==0 else 'Red')
+                                         marker = dict(size=2, opacity=0.5, color=None if mode_qcluster==0 else 'orange')
                                         )
                     data.append(trace)
                 if mode_qcluster in [1,2]:
@@ -157,7 +157,7 @@ class AppManager:
                     trace = go.Scatter3d(x=xyz[:,0],y=xyz[:,1],z=xyz[:,2],mode='markers',
                                          name=name,
                                          #template='plotly' if not self.dark_mode else 'plotly_dark',
-                                         marker = dict(size=2, opacity=0.5, color=None if mode_qcluster==2 else 'Blue')
+                                         marker = dict(size=2, opacity=0.5, color=None if mode_qcluster==2 else 'cyan')
                                         )
                     data.append(trace)
         target_v = self.dat_manager.np_flash_v if mode_flash else self.dat_manager.np_hypo_v
@@ -168,7 +168,7 @@ class AppManager:
             if len(target_v) in flash_idx_v: pmt_val = np.sum(target_v,axis=0)
             else: pmt_val = np.sum(np.column_stack([target_v[idx] for idx in flash_idx_v]),axis=1)
             name = 'Flash (%f PEs)' % np.sum(pmt_val)
-            if(len(flash_idx_v)==1):
+            if(len(flash_idx_v)==1 and mode_flash):
                 name = 'Flash (%f PEs @ %f us)' % (np.sum(pmt_val), cpp_target_v[flash_idx_v[0]].time)
             trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
                                  name=name,

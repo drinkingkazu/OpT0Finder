@@ -59,7 +59,7 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                   dcc.RadioItems(id='use_all_pts',
                                  options=[dict(label='Before X-shift',value='raw_qcluster'),
                                           dict(label='... and before active BB cut',value='all_pts')],
-                                 value='raw_cluster'),],
+                                 value='raw_qcluster'),],
                  style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
         html.Div([html.Label('Select QCluster_t to display', style=label_text_style),
                  ],style={'padding': '5px'}),
@@ -81,6 +81,7 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                options=_manager.dropdown_flash(entry,is_entry=True,mode_flash=True),
                                multi=True),
                  ],style={'padding': '5px'}),
+        #html.Div([html.Label('Event display (all selected flash combined)')])
         html.Div([dcc.Graph(id='visdata',figure=_manager.empty_view)],style={'padding': '5px'}),
         #
         # Hypothesis event display
@@ -115,7 +116,7 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
             from flashmatch import phot
             print('hypothesis mode chosen, loading photon library...')
             phot.PhotonVisibilityService.GetME().LoadLibrary()
-        return mode
+        return ""
 
     @app.callback(dash.dependencies.Output("select_qcluster","options"),
                   [dash.dependencies.Input("entry_or_event","value"),
