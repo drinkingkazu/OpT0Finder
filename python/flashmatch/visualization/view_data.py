@@ -222,7 +222,7 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         Update drop-down "select_flash" options for Flash when event/entry is changed
         """
         is_entry = entry_or_event == 'entry'
-        mode_flash = mode_flash == 'hypothesis'
+        mode_flash = mode_flash == 'flash'
         if data_index is None or (int(data_index) == _manager.current_data_index(is_entry=is_entry)
                                   and not mode_flash):
             raise dash.exceptions.PreventUpdate

@@ -132,7 +132,7 @@ class AppManager:
         idx_v  = [flash.idx for flash in self.dat_manager.cpp.flash_v]
         time_v = np.zeros(shape=[len(target_v)])
         if mode_flash: time_v = [flash.time for flash in self.dat_manager.cpp.flash_v]
-        dropdown_flash  = [dict(label='Flash %02d (t=%f us  PE=%dE2)' % (idx_v[idx],
+        dropdown_flash  = [dict(label='Flash %02d (t=%.2f us  PE=%dE2)' % (idx_v[idx],
                                                                        time_v[idx],
                                                                        int(flash.sum()/100.)
                                                                       ),
