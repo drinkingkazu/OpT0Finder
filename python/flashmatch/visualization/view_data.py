@@ -104,6 +104,7 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
     def load_plib(mode):
         if mode == 'hypothesis':
             from flashmatch import phot
+            print('hypothesis mode chosen, loading photon library...')
             phot.PhotonVisibilityService.GetME().LoadLibrary()
         return mode
 
@@ -117,7 +118,12 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         is_entry = entry_or_event == 'entry'
         if data_index is None or int(data_index) == _manager.current_data_index(is_entry=is_entry):
             raise dash.exceptions.PreventUpdate
-        return _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
+        options = _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
+        if options is None:
+            print('Cannot find data for',entry_or_event,data_index)
+            raise dash.exceptions.PreventUpdate
+        else: return options
+
 
     @app.callback(dash.dependencies.Output("target_qcluster","options"),
                   [dash.dependencies.Input("entry_or_event","value"),
@@ -129,7 +135,10 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         is_entry = entry_or_event == 'entry'
         if data_index is None or int(data_index) == _manager.current_data_index(is_entry=is_entry):
             raise dash.exceptions.PreventUpdate
-        return _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
+        options = _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
+        if options is None: raise dash.exceptions.PreventUpdate
+        else: return options
+
 
     @app.callback(dash.dependencies.Output("select_flash","options"),
                   [dash.dependencies.Input("entry_or_event","value"),
@@ -144,9 +153,12 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         if data_index is None or (int(data_index) == _manager.current_data_index(is_entry=is_entry)
                                   and not mode_flash):
             raise dash.exceptions.PreventUpdate
-        return _manager.dropdown_flash(data_index=int(data_index),
-                                       is_entry=is_entry,
-                                       mode_flash=mode_flash)
+        options = _manager.dropdown_flash(data_index=int(data_index),
+                                          is_entry=is_entry,
+                                          mode_flash=mode_flash)
+        if options is None: raise dash.exceptions.PreventUpdate
+        else: return options
+
 
     @app.callback(dash.dependencies.Output("visdata","figure"),
                   [dash.dependencies.Input("select_qcluster","value"),
@@ -167,7 +179,10 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         elif mode_qcluster == 'only_raw_qcluster': mode_qcluster=2
         else: raise ValueError
         if data_index is None: raise dash.exceptions.PreventUpdate
-        return _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, mode_flash, mode_qcluster)
+        fig = _manager.event_display(int(data_index), select_qcluster, select_flash, is_entry, mode_flash, mode_qcluster)
+        if fig is None: raise dash.exceptions.PreventUpdate
+        else: return fig
+
 
     @app.callback(dash.dependencies.Output("playdata","figure"),
                   [dash.dependencies.Input("target_qcluster","value"),
@@ -182,6 +197,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         is_entry = entry_or_event == 'entry'
         if data_index is None or target_qcluster is None or len(target_qcluster)<1:
             raise dash.exceptions.PreventUpdate
-        return _manager.hypothesis_display(int(data_index), target_qcluster, is_entry, float(xoffset))
+        fig = _manager.hypothesis_display(int(data_index), target_qcluster, is_entry, float(xoffset))
+        if fig is None: raise dash.exceptions.PreventUpdate
+        else: return fig
+
 
     app.server.run(port=port)

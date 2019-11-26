@@ -18,14 +18,19 @@ class DataManager:
         self.event = -1
         self.hypothesis_made = False
 
+
     def update(self,manager,entry,is_entry=True,make_hypothesis=False):
         """
         Given flashmatch.AnalysisManager, which can interface input data stream and OpT0Finder tools,
         this function "read and update" local data attributes if needed.
         """
         if not is_entry:
-            entry = manager.entry_id(entry)
-        if entry < 0 or entry >= len(manager.entries()): return
+            try:
+                entry = manager.entry_id(entry)
+            except IndexError:
+                return False
+        if entry < 0 or entry >= len(manager.entries()):
+            return False
         if not self.entry == entry:
             self.cpp = manager.make_flashmatch_input(entry)
             self.np_qcluster_v     = [flashmatch.as_ndarray(qcluster) for qcluster in self.cpp.qcluster_v    ]
@@ -39,6 +44,8 @@ class DataManager:
             self.np_hypo_v  = [flashmatch.as_ndarray(flash)       for flash    in self.cpp.hypo_v    ]
             for idx in range(len(self.np_hypo_v)):
                 self.cpp.hypo_v[idx].idx = self.cpp.qcluster_v[idx].idx
+        return True
+
 
 class AppManager:
     """
@@ -84,7 +91,8 @@ class AppManager:
         OUTPUT:
           A list of dicts to be consumed by dash app dropdown options
         """
-        self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry)
+        if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry):
+            return None
         idx_v = [qcluster.idx for qcluster in self.dat_manager.cpp.qcluster_v]
         dropdown_qcluster = [dict(label='Track %02d (%d pts)' % (idx_v[idx],len(qcluster)),
                                   value=idx)
@@ -101,7 +109,8 @@ class AppManager:
         OUTPUT:
           A list of dicts to be consumed by dash app dropdown options
         """
-        self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=(not mode_flash))
+        if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=(not mode_flash)):
+            return None
         target_v = self.dat_manager.np_flash_v if mode_flash else self.dat_manager.np_hypo_v
         idx_v  = [flash.idx for flash in self.dat_manager.cpp.flash_v]
         time_v = np.zeros(shape=[len(target_v)])
@@ -119,9 +128,9 @@ class AppManager:
         """
         Generate 3D display for change in event/entry and/or selection of flash/qcluster
         """
-        self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=(not mode_flash))
+        if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=(not mode_flash)):
+            return None
         data = []
-        print('qcluster',mode_qcluster)
         # QCluster
         # if mode_qcluster == 0, then only show qcluster with color-per-cluster
         # if mode_qcluster == 1, then show both qcluster and raw version with 2 colors (red + green)
@@ -129,7 +138,7 @@ class AppManager:
 
         if qcluster_idx_v is not None and len(qcluster_idx_v):
             if len(self.dat_manager.np_qcluster_v) in qcluster_idx_v:
-                qcluster_idx_v = range(len(_blob.np_qcluster_v))
+                qcluster_idx_v = range(len(self.dat_manager.np_qcluster_v))
             idx_v = [self.dat_manager.cpp.qcluster_v[idx].idx for idx in qcluster_idx_v]
             for idx in qcluster_idx_v:
                 if mode_qcluster in [0,1]:
@@ -179,7 +188,8 @@ class AppManager:
         """
         Generate 3D display of a flash hypothesis for a given QCluster and x-offset
         """
-        self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=False)
+        if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=False):
+            return None
         data = []
         if qcluster_idx_v is None or len(qcluster_idx_v)<1: return self.empty_view
         if len(self.dat_manager.np_qcluster_v) in qcluster_idx_v:
