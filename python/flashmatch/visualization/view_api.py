@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import plotly.graph_objs as go
 from flashmatch import flashmatch, AnalysisManager
@@ -36,6 +37,14 @@ class DataManager:
             self.np_raw_qcluster_v = [flashmatch.as_ndarray(qcluster) for qcluster in self.cpp.raw_qcluster_v]
             self.np_all_pts_v      = [flashmatch.as_ndarray(qcluster) for qcluster in self.cpp.all_pts_v     ]
             self.np_flash_v        = [flashmatch.as_ndarray(flash)    for flash    in self.cpp.flash_v       ]
+            pmt_maxid,tpc_maxid=0,0
+            for tpc in self.cpp.qcluster_v: tpc_maxid = max(tpc_maxid,tpc.idx)
+            for pmt in self.cpp.flash_v: pmt_maxid = max(pmt_maxid,pmt.idx)
+            self.np_match_tpc2pmt  = np.ones(shape=(tpc_maxid+1),dtype=np.int32) * -1
+            self.np_match_pmt2tpc  = np.ones(shape=(pmt_maxid+1),dtype=np.int32) * -1
+            for match in self.cpp.true_match:
+                self.np_match_tpc2pmt[match[1]]=match[0]
+                self.np_match_pmt2tpc[match[0]]=match[1]
             self.entry = entry
             self.event = manager.event_id(entry)
             self.hypothesis_made = False
@@ -71,6 +80,22 @@ class AppManager:
         self.detector_trace_no_pmt = self.vis_icarus.get_trace_detector(draw_pmts=False)
         self.layout = icarus_layout3d(self.vis_icarus.data(),set_camera=False,dark=self.dark_mode)
         self.empty_view = go.Figure(self.detector_trace,layout=self.layout)
+        sys.stdout.flush()
+
+
+    def qll_score(self,hypothesis,flash):
+        res = self.ana_manager.matcher.GetAlgo(flashmatch.kFlashMatch).QLL(hypothesis,flash)
+        sys.stdout.flush()
+        return np.power(10,-1.*res)
+
+    def run_flashmatch(self,qcluster,flash):
+        self.ana_manager.matcher.Reset()
+        self.ana_manager.matcher.Add(qcluster)
+        self.ana_manager.matcher.Add(flash)
+        res = self.ana_manager.matcher.Match()
+        sys.stdout.flush()
+        if not len(res) == 1: return None
+        else: return res[0]
 
     def valid_data_entry(self,entry,is_entry):
         """
@@ -110,9 +135,12 @@ class AppManager:
         """
         if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry):
             return None
-        idx_v = [qcluster.idx for qcluster in self.dat_manager.cpp.qcluster_v]
-        dropdown_qcluster = [dict(label='Track %02d (%d pts)' % (idx_v[idx],len(qcluster)),
-                                  value=idx)
+        label_v = []
+        for idx, qc in enumerate(self.dat_manager.cpp.qcluster_v):
+            label = 'Track %02d (%dpts Match=%d T=%.3fus)'
+            label = label % (qc.idx, qc.size(), self.dat_manager.np_match_tpc2pmt[qc.idx], qc.time_true)
+            label_v.append(label)
+        dropdown_qcluster = [dict(label=label_v[idx], value=idx)
                              for idx,qcluster in enumerate(self.dat_manager.np_qcluster_v)]
         dropdown_qcluster += [dict(label='All tracks',value=len(self.dat_manager.np_qcluster_v))]
         return dropdown_qcluster
@@ -123,22 +151,32 @@ class AppManager:
         INPUTS:
           - data_index ... an integer to specify which entry/event to read
           - is_entry ... True=entry, False=event id
+          - mode_flash ... True=Flash, False=Hypothesis
         OUTPUT:
           A list of dicts to be consumed by dash app dropdown options
         """
         if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=(not mode_flash)):
             return None
         target_v = self.dat_manager.np_flash_v if mode_flash else self.dat_manager.np_hypo_v
-        idx_v  = [flash.idx for flash in self.dat_manager.cpp.flash_v]
-        time_v = np.zeros(shape=[len(target_v)])
+        label_v = []
+        if mode_flash:
+            for idx, pmt in enumerate(self.dat_manager.cpp.flash_v):
+                pesum = self.dat_manager.np_flash_v[idx].sum()
+                label = 'Flash %02d (PE=%de2 Match=%d T=%.3fus MC-T=%.2fus)'
+                label = label % (pmt.idx, pesum/100.,
+                                 self.dat_manager.np_match_pmt2tpc[pmt.idx], pmt.time, pmt.time_true)
+                label_v.append(label)
+        else:
+            for idx, tpc in enumerate(self.dat_manager.cpp.qcluster_v):
+                pesum = self.dat_manager.np_hypo_v[idx].sum()
+                label = 'Hypothesis %02d (PE=%de2 MC-T=%.3fus)'
+                label = label % (tpc.idx, pesum/100., tpc.time_true)
+                label_v.append(label)
         if mode_flash: time_v = [flash.time for flash in self.dat_manager.cpp.flash_v]
-        dropdown_flash  = [dict(label='Flash %02d (t=%.2f us  PE=%dE2)' % (idx_v[idx],
-                                                                       time_v[idx],
-                                                                       int(flash.sum()/100.)
-                                                                      ),
-                                value=idx)
+        dropdown_flash  = [dict(label=label_v[idx],value=idx)
                             for idx,flash in enumerate(target_v)]
         dropdown_flash += [dict(label='All flashes',value=len(target_v))]
+        sys.stdout.flush()
         return dropdown_flash
 
     def event_display(self, data_index, qcluster_idx_v, flash_idx_v,
@@ -188,7 +226,7 @@ class AppManager:
             pmt_range[1] = np.max(pmt_val) if pmt_range[1].lower() == 'max' else float(pmt_range[1])
             name = 'Flash (%dE2 PEs)' % int(np.sum(pmt_val)/100.)
             if(len(flash_idx_v)==1 and mode_flash):
-                name = 'Flash (%dE2 PEs @ %f us)' % (int(np.sum(pmt_val)/100.), int(cpp_target_v[flash_idx_v[0]].time))
+                name = 'Flash (%dE2 PEs @ %.2f us)' % (int(np.sum(pmt_val)/100.), int(cpp_target_v[flash_idx_v[0]].time))
             trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
                                  name=name,
                                  #template='plotly' if not self.dark_mode else 'plotly_dark',
@@ -199,48 +237,174 @@ class AppManager:
             # no pmt data => show default pmt view
             return go.Figure(self.detector_trace + data, layout=self.layout)
 
+        sys.stdout.flush()
         if len(data)<1:
             return self.empty_view
         else:
             return go.Figure(self.detector_trace_no_pmt + data, layout=self.layout)
 
-    def hypothesis_display(self, data_index, qcluster_idx_v, is_entry, xoffset):
+    def hypothesis_display(self, data_index, qcluster_idx, flash_idx,
+                           pe_range, normalize_pe, is_entry, xpos):
         """
         Generate 3D display of a flash hypothesis for a given QCluster and x-offset
         """
-        if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=False):
+        if not self.dat_manager.update(self.ana_manager, entry=data_index,
+                                       is_entry=is_entry, make_hypothesis=False):
             return None
         data = []
-        if qcluster_idx_v is None or len(qcluster_idx_v)<1: return self.empty_view
-        if len(self.dat_manager.np_qcluster_v) in qcluster_idx_v:
-            qcluster_idx_v = range(len(self.dat_manager.np_qcluster_v))
-        qcluster = flashmatch.QCluster_t()
-        for idx in qcluster_idx_v:
-            qcluster += self.dat_manager.cpp.qcluster_v[idx]
-        # find x span allowed
-        xmin,xmax=qcluster.min_x(),qcluster.max_x()
-        # if xoffset is larger than xmax-xmin, truncate
-        xoffset = min(xoffset,xmax-xmin)
-        # shift
-        qcluster += (xoffset - xmin)
-        # make hypothesis
-        hypothesis = self.ana_manager.flash_hypothesis(qcluster)
-        # make a trace for tpc
-        xyzv = flashmatch.as_ndarray(qcluster)
-        tpc_trace = go.Scatter3d(x=xyzv[:,0],y=xyzv[:,1],z=xyzv[:,2],mode='markers',
-                                 name='Track (offset %f)' % xoffset,
-                                 #template='plotly' if not self.dark_mode else 'plotly_dark',
-                                 marker = dict(size=2,opacity=0.5)
-                                )
-        # make a trace for pmt
-        pmt_val = flashmatch.as_ndarray(hypothesis)
+        hypo_val,flash_val,diff_val=None,None,None
+        hypo_name,flash_name,diff_name=None,None,None
+        if qcluster_idx is not None:
+            # Find QCluster
+            qcluster = self.dat_manager.cpp.qcluster_v[qcluster_idx]
+            raw_qcluster = self.dat_manager.cpp.raw_qcluster_v[qcluster_idx]
+            # find x span allowed
+            xspan = qcluster.max_x() - qcluster.min_x()
+            # if xoffset is larger than allowed range, truncate
+            active_bb  = flashmatch.DetectorSpecs.GetME().ActiveVolume()
+            max_xpos = min(active_bb.Min()[0] + xspan, active_bb.Max()[0])
+            xpos     = max(min(xpos,max_xpos),active_bb.Min()[0])
+            # shift to xoffset
+            offset_qcluster = flashmatch.QCluster_t(qcluster) - qcluster.min_x() + xpos
+            # Make hypothesis
+            hypothesis = self.ana_manager.flash_hypothesis(offset_qcluster)
+            hypo_val = flashmatch.as_ndarray(hypothesis)
+            hypo_name ='Hypothesis (%dE2 PEs)' % int(np.sum(hypo_val)/100.)
+            # make a trace for tpc
+            xyzv = flashmatch.as_ndarray(offset_qcluster)
+            tpc_trace = go.Scatter3d(x=xyzv[:,0],y=xyzv[:,1],z=xyzv[:,2],mode='markers',
+                                     name='QCluster (X %.2f)' % xpos,
+                                     #template='plotly' if not self.dark_mode else 'plotly_dark',
+                                     marker = dict(size=2,opacity=0.5,color='orange')
+                                    )
+            data.append(tpc_trace)
+            # also plot raw all points
+            xyzv = self.dat_manager.np_all_pts_v[qcluster_idx]
+            tpc_trace = go.Scatter3d(x=xyzv[:,0],y=xyzv[:,1],z=xyzv[:,2],mode='markers',
+                                     name='True all points',
+                                     #template='plotly' if not self.dark_mode else 'plotly_dark',
+                                     marker = dict(size=2,opacity=0.5,color='green')
+                                    )
+            data.append(tpc_trace)
+
+        if flash_idx is not None:
+            pmt_pos = self.vis_icarus.data()['pmts']
+            flash_val = self.dat_manager.np_flash_v[flash_idx]
+            flash_name = 'Flash (%dE2 PEs)' % int(np.sum(flash_val)/100.)
+
+        if hypo_val is not None and flash_val is not None:
+            #numerator = (flash_val - hypo_val)
+            #denominator = (flash_val + hypo_val)
+            #diff_val = np.zeros(shape=numerator.shape,dtype=np.float32)
+            #where = np.where(denominator>0)
+            #diff_val[where] = numerator[where] / denominator[where] * 2.0
+            diff_val = flash_val - hypo_val
+            diff_name = 'Diff (Flash-Hypothesis)'
+
+        # Now decide the color range and normalization
+        flash_range,hypo_range = (1.e20,-1.e20), (1.e20,-1.e20)
+        flash_range = (1.e20,-1.e20) if flash_val is None else (flash_val.min(),flash_val.max())
+        hypo_range  = (1.e20,-1.e20) if hypo_val  is None else (hypo_val.min(), hypo_val.max() )
+        if normalize_pe == 0:
+            if pe_range[0].lower() == 'min':
+                pe_range[0] = min(flash_range[0],hypo_range[0])
+            else:
+                pe_range[0] = float(pe_range[0])
+            if pe_range[1].lower() == 'max':
+                pe_range[1] = max(flash_range[1],hypo_range[1])
+            else:
+                pe_range[1] = float(pe_range[1])
+        if normalize_pe == 1 and not flash_val is None:
+            pe_range = [0.,1.]
+            norm = flash_val.sum()
+            if not diff_val  is None: diff_val   = diff_val / flash_val
+            if not flash_val is None: flash_val /= norm
+            if not hypo_val  is None: hypo_val  /= norm
+        if normalize_pe == 2 and not hypo_val is None:
+            pe_range = [0.,1.]
+            norm = hypo_val.sum()
+            if not diff_val  is None: diff_val   = diff_val / hypo_val
+            if not flash_val is None: flash_val /= norm
+            if not hypo_val  is None: hypo_val  /= norm
+
+        # make a trace for hypothesis
         pmt_pos = self.vis_icarus.data()['pmts']
-        pmt_trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
-                                 name='Hypothesis (%f PEs)' % np.sum(pmt_val),
-                                 #template='plotly' if not self.dark_mode else 'plotly_dark',
-                                 marker = dict(size=6,
-                                               color=pmt_val,
-                                               colorscale=None,
-                                               opacity=0.5)
-                                )
-        return go.Figure(self.detector_trace_no_pmt + [pmt_trace] + [tpc_trace], layout=self.layout)
+        if not hypo_val is None:
+            hypo_trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
+                                      name=hypo_name,
+                                      #template='plotly' if not self.dark_mode else 'plotly_dark',
+                                      marker = dict(size=6,
+                                                    color=hypo_val,
+                                                    colorscale="OrRd",
+                                                    cmin=pe_range[0],cmax=pe_range[1],
+                                                    opacity=0.5),
+                                      hoverinfo = ['x','y','z','text'],
+                                      hovertext = ['%.2f' % val for val in hypo_val]
+                                     )
+            data.append(hypo_trace)
+
+        if not flash_val is None:
+            flash_trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
+                                       name=flash_name,
+                                       #template='plotly' if not self.dark_mode else 'plotly_dark',
+                                       marker = dict(size=6,
+                                                     color=flash_val,
+                                                     colorscale = 'Greens',
+                                                     cmin=pe_range[0], cmax=pe_range[1],
+                                                     opacity=0.5
+                                                    ),
+                                      hoverinfo = ['x','y','z','text'],
+                                      hovertext = ['%.2f' % val for val in flash_val]
+                                      )
+            data.append(flash_trace)
+
+        if not diff_val is None:
+            diff_trace = go.Scatter3d(x=pmt_pos[:,0],y=pmt_pos[:,1],z=pmt_pos[:,2],mode='markers',
+                                      name=diff_name,
+                                      #template='plotly' if not self.dark_mode else 'plotly_dark',
+                                      marker = dict(size=6,
+                                                    color=diff_val,
+                                                    colorscale=None,
+                                                    cmin=pe_range[1]*(-1), cmax=pe_range[1],
+                                                    opacity=0.5,),
+                                      hoverinfo = ['x','y','z','text'],
+                                      hovertext = ['%.2f' % val for val in diff_val]
+                                     )
+            data.append(diff_trace)
+
+        sys.stdout.flush()
+        if len(data)<1:
+            return self.empty_view
+        return go.Figure(self.detector_trace_no_pmt + data, layout=self.layout)
+
+    def run_qll(self, data_index, qcluster_idx, flash_idx, is_entry, xpos):
+        """
+        Generate 3D display of a flash hypothesis for a given QCluster and x-offset
+        """
+        if not self.dat_manager.update(self.ana_manager, entry=data_index,
+                                       is_entry=is_entry, make_hypothesis=False):
+            return None
+        data = []
+        if qcluster_idx is None or flash_idx is None:
+            return None
+        # Find QCluster
+        qcluster = self.dat_manager.cpp.qcluster_v[qcluster_idx]
+        raw_qcluster = self.dat_manager.cpp.raw_qcluster_v[qcluster_idx]
+        # find x span allowed
+        xspan = qcluster.max_x() - qcluster.min_x()
+        # if xoffset is larger than allowed range, truncate
+        active_bb  = flashmatch.DetectorSpecs.GetME().ActiveVolume()
+        max_xpos = min(active_bb.Min()[0] + xspan, active_bb.Max()[0])
+        xpos     = max(min(xpos,max_xpos),active_bb.Min()[0])
+        # shift to xoffset
+        offset_qcluster = flashmatch.QCluster_t(qcluster) - qcluster.min_x() + xpos
+        # Make hypothesis
+        hypothesis = self.ana_manager.flash_hypothesis(offset_qcluster)
+        # Find flash
+        flash = self.dat_manager.cpp.flash_v[flash_idx]
+
+        # Run QLL
+        score_xoffset = self.qll_score(hypothesis,flash)
+        match = self.run_flashmatch(qcluster,flash)
+        sys.stdout.flush()
+        return raw_qcluster.min_x(), score_xoffset, match

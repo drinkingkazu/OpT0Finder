@@ -45,7 +45,6 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                   dcc.Input(id='data_index', value=str(entry), type='int')],
                  style={'width': '100%', 'display': 'inline-block', 'padding': '5px'}),
         html.Div(id='error_entry'),
-        dcc.Loading(id="loading", children=[html.Div(id="wait_out")], type="default"),
         #
         # TPC options
         #
@@ -95,9 +94,9 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                   html.Label(' (type "min" and "max" for automatic range setting)', style=para_text_style),
                  ], style={'width': '100%', 'display': 'inline-block', 'padding': '5px'}),
         html.Div(id='error_pmt_range'),
+        dcc.Loading(id="loading_static_display", children=[html.Div(id="wait_static_display")], type="default"),
         html.Div([dcc.Graph(id='visdata',figure=_manager.empty_view)],
                   style={'padding':'5px'}),
-
         #
         # Hypothesis event display
         #
@@ -107,17 +106,41 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                  ],style={'padding': '5px'}),
         html.Div([dcc.Dropdown(id='target_qcluster',
                                options=_manager.dropdown_qcluster(entry,is_entry=True),
-                               multi=True),
+                               multi=False),
                  ],style={'padding': '5px'}),
-
-        html.Div([html.Label('X Offset', style=label_text_style),
+        html.Div([html.Span('Select Flash_t to match', style=span_text_style),
                  ],style={'padding': '5px'}),
-        html.Div([dcc.Slider(id='xoffset',min=xmin,max=xmax,step=1.,value=xmin),
+        html.Div([dcc.Dropdown(id='target_flash',
+                               options=_manager.dropdown_flash(entry,is_entry=True,mode_flash=True),
+                               multi=False),
+                 ],style={'padding': '5px'}),
+        html.Div([html.Label('Normalize PE scale for score calculation',
+                             style=label_text_style),
+                  dcc.RadioItems(id='normalize_pe',
+                                 options=[dict(label='No',value='0'),
+                                          dict(label='Normalize to hypothesis',value='1'),
+                                          dict(label='Normalize to flash',value='2')],
+                                 value='0'),],
+                 style={'width': '50%', 'display': 'inline-block', 'padding': '5px'}),
+        html.Div([html.Label('PMT color scale: ', style=label_text_style),
+                  html.Br(),
+                  dcc.Input(id='flash_cmin', value='min', type='str'),# style={'padding':'5px'}),
+                  html.Label(' to ', style=label_text_style),
+                  dcc.Input(id='flash_cmax', value='max', type='str'),# style={'padding':'5px'}),
+                  html.Label(' (type "min" and "max" for automatic range setting)', style=para_text_style),
+                 ], style={'width': '100%', 'display': 'inline-block', 'padding': '5px'}),
+        html.Div(id='error_flash_range'),
+        html.Div([html.Label('X position ', style=label_text_style),
+                  #dcc.Input(id='xoffset_text', value='min', type='str')
+                 ],style={'padding': '5px'}),
+        html.Div([dcc.Slider(id='xoffset',min=xmin,max=xmax,step=.1,value=xmin),
                  ],style={'padding': '5px'}),
         #dcc.Loading(id="loading-playdata",
         #            children=[html.Div([dcc.Graph(id='playdata',figure=_manager.empty_view)],
         #                               style={'padding': '5px'})],
         #            type="circle"),
+        html.Div(id="match_result"),
+        dcc.Loading(id="loading_dynamic_display", children=[html.Div(id="wait_dynamic_display")], type="default"),
         html.Div([dcc.Graph(id='playdata',figure=_manager.empty_view)],style={'padding': '5px'}),
     ],style={'width': '80%', 'display': 'inline-block', 'vertical-align': 'middle'})
 
@@ -141,9 +164,6 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         else:
             return ""
 
-    #
-    # call backs
-    #
     @app.callback(dash.dependencies.Output("error_pmt_range", "children"),
                   [dash.dependencies.Input("pmt_cmin","value"),
                    dash.dependencies.Input("pmt_cmax","value")])
@@ -165,11 +185,41 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
                                 style={'color':'red'})]
         return ""
 
+    @app.callback(dash.dependencies.Output("error_flash_range", "children"),
+              [dash.dependencies.Input("flash_cmin","value"),
+               dash.dependencies.Input("flash_cmax","value")])
+    def error_entry(flash_cmin,flash_cmax):
+        flash_cmin = str(flash_cmin).lower()
+        flash_cmax = str(flash_cmax).lower()
+        cmin_good,cmax_good=True,True
+        try:
+            if not flash_cmin == "min":
+                flash_cmin = float(flash_cmin)
+        except ValueError:
+            return [html.Label('Invalid PMT min value: %s (either numerical value or "min")' % flash_cmin,
+                                style={'color':'red'})]
+        try:
+            if not flash_cmax == "max":
+                flash_cmax = float(flash_cmax)
+        except ValueError:
+            return [html.Label('Invalid PMT max value: %s (either numerical value or "min")' % flash_cmax,
+                                style={'color':'red'})]
+        return ""
 
-    @app.callback(dash.dependencies.Output("wait_out", "children"),
+
+    @app.callback(dash.dependencies.Output("wait_static_display", "children"),
                   [dash.dependencies.Input("mode_flash", "value")])
-    def load_plib(mode):
+    def wait_static_display(mode):
         if mode == 'hypothesis':
+            from flashmatch import phot
+            print('hypothesis mode chosen, loading photon library...')
+            phot.PhotonVisibilityService.GetME().LoadLibrary()
+        return ""
+
+    @app.callback(dash.dependencies.Output("wait_dynamic_display", "children"),
+                  [dash.dependencies.Input("target_qcluster", "value")])
+    def wait_dynamic_display(target_qcluster):
+        if target_qcluster is not None:
             from flashmatch import phot
             print('hypothesis mode chosen, loading photon library...')
             phot.PhotonVisibilityService.GetME().LoadLibrary()
@@ -183,7 +233,7 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         Update drop-down "select_qcluster" options for QCluster when event/entry is changed
         """
         is_entry = entry_or_event == 'entry'
-        if data_index is None or int(data_index) == _manager.current_data_index(is_entry=is_entry):
+        if data_index is None:
             raise dash.exceptions.PreventUpdate
         data_index=int(data_index)
         if _manager.valid_data_entry(data_index,is_entry) is None:
@@ -203,28 +253,27 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         Update drop-down "target_qcluster" options for QCluster when event/entry is changed
         """
         is_entry = entry_or_event == 'entry'
-        if data_index is None or int(data_index) == _manager.current_data_index(is_entry=is_entry):
+        if data_index is None:
             raise dash.exceptions.PreventUpdate
         data_index=int(data_index)
         if _manager.valid_data_entry(data_index,is_entry) is None:
             raise dash.exceptions.PreventUpdate
         options = _manager.dropdown_qcluster(data_index=int(data_index),is_entry=is_entry)
         if options is None: raise dash.exceptions.PreventUpdate
-        else: return options
+        else: return options[:-1]
 
 
     @app.callback(dash.dependencies.Output("select_flash","options"),
                   [dash.dependencies.Input("entry_or_event","value"),
                    dash.dependencies.Input("data_index","value"),
                    dash.dependencies.Input("mode_flash","value")])
-    def update_dropdown_flash(entry_or_event,data_index,mode_flash):
+    def update_dropdown_select_flash(entry_or_event,data_index,mode_flash):
         """
         Update drop-down "select_flash" options for Flash when event/entry is changed
         """
         is_entry = entry_or_event == 'entry'
         mode_flash = mode_flash == 'flash'
-        if data_index is None or (int(data_index) == _manager.current_data_index(is_entry=is_entry)
-                                  and not mode_flash):
+        if data_index is None:
             raise dash.exceptions.PreventUpdate
         data_index=int(data_index)
         if _manager.valid_data_entry(data_index,is_entry) is None:
@@ -235,6 +284,24 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
         if options is None: raise dash.exceptions.PreventUpdate
         else: return options
 
+    @app.callback(dash.dependencies.Output("target_flash","options"),
+                  [dash.dependencies.Input("entry_or_event","value"),
+                   dash.dependencies.Input("data_index","value")])
+    def update_dropdown_target_flash(entry_or_event,data_index):
+        """
+        Update drop-down "target_flash" options for Flash when event/entry is changed
+        """
+        is_entry = entry_or_event == 'entry'
+        if data_index is None:
+            raise dash.exceptions.PreventUpdate
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
+            raise dash.exceptions.PreventUpdate
+        options = _manager.dropdown_flash(data_index=int(data_index),
+                                          is_entry=is_entry,
+                                          mode_flash=True)
+        if options is None: raise dash.exceptions.PreventUpdate
+        else: return options[:-1]
 
     @app.callback(dash.dependencies.Output("visdata","figure"),
                   [dash.dependencies.Input("select_qcluster","value"),
@@ -286,23 +353,91 @@ def view_data(cfg,geo,data_particle,data_opflash,dark_mode=True,port=5000):
 
     @app.callback(dash.dependencies.Output("playdata","figure"),
                   [dash.dependencies.Input("target_qcluster","value"),
+                   dash.dependencies.Input("target_flash","value"),
                    dash.dependencies.Input("xoffset","value"),
+                   dash.dependencies.Input("flash_cmin","value"),
+                   dash.dependencies.Input("flash_cmax","value"),
+                   dash.dependencies.Input("normalize_pe","value"),
                    dash.dependencies.Input("entry_or_event","value"),
                    dash.dependencies.Input("data_index","value")]
                  )
-    def update_dynamic(target_qcluster, xoffset, entry_or_event, data_index):
+    def update_dynamic(target_qcluster, target_flash, xoffset,
+                       flash_cmin, flash_cmax, normalize_pe,
+                       entry_or_event, data_index):
         """
         Update "playdata" 3D display for change in event/entry and/or selection of flash/qcluster
         """
         is_entry = entry_or_event == 'entry'
-        if data_index is None or target_qcluster is None or len(target_qcluster)<1:
+        if data_index is None or (target_qcluster is None and target_flash is None):
             raise dash.exceptions.PreventUpdate
         data_index=int(data_index)
         if _manager.valid_data_entry(data_index,is_entry) is None:
             raise dash.exceptions.PreventUpdate
-        fig = _manager.hypothesis_display(int(data_index), target_qcluster, is_entry, float(xoffset))
+        flash_range=[0,0]
+        if flash_cmin.lower()=='min': flash_range[0]='min'
+        else:
+            try:
+                flash_range[0]=str(float(flash_cmin))
+            except ValueError:
+                raise dash.exceptions.PreventUpdate
+        if flash_cmax.lower()=='max': flash_range[1]='max'
+        else:
+            try:
+                flash_range[1]=str(float(flash_cmax))
+            except ValueError:
+                raise dash.exceptions.PreventUpdate
+        fig = _manager.hypothesis_display(int(data_index), target_qcluster, target_flash,
+                                          flash_range, int(normalize_pe),
+                                          is_entry, float(xoffset))
         if fig is None: raise dash.exceptions.PreventUpdate
         else: return fig
 
+    @app.callback(dash.dependencies.Output("match_result","children"),
+                  [dash.dependencies.Input("target_qcluster","value"),
+                   dash.dependencies.Input("target_flash","value"),
+                   dash.dependencies.Input("xoffset","value"),
+                   dash.dependencies.Input("entry_or_event","value"),
+                   dash.dependencies.Input("data_index","value"),]
+                 )
+    def update_match(target_qcluster, target_flash, xoffset, entry_or_event, data_index):
+        """
+        Update "playdata" 3D display for change in event/entry and/or selection of flash/qcluster
+        """
+        is_entry = entry_or_event == 'entry'
+        if data_index is None or target_qcluster is None or target_flash is None:
+            raise dash.exceptions.PreventUpdate
+        data_index=int(data_index)
+        if _manager.valid_data_entry(data_index,is_entry) is None:
+            raise dash.exceptions.PreventUpdate
+        qll = _manager.run_qll(int(data_index), target_qcluster, target_flash,
+                               is_entry, float(xoffset))
+        show_style_text = dict(fontFamily='Georgia', fontWeight=300, fontSize=20)
+        show_style_num  = dict(fontFamily='Georgia', fontWeight=600, fontSize=20, color='blue')
+
+        xoffset = float(xoffset)
+        res = []
+        if qll is None:
+            raise dash.exceptions.PreventUpdate
+        else:
+            # xmin and score_xoffset should not be None
+            xmin,score_xoffset,match = qll
+            res += [html.Label('QLL joint probability ',style=show_style_text),
+                    html.Label('%.4f' % score_xoffset,style=show_style_num),
+                    html.Label(' at X ',style=show_style_text),
+                    html.Label('%.2f' % xoffset,style=show_style_num),
+                    html.Label(' ... true X ',style=show_style_text),
+                    html.Label('%.2f' % xmin,style=show_style_num),
+                    html.Br()]
+            if match is not None:
+                res += [html.Label('QLL match result: score ',style=show_style_text),
+                        html.Label('%.4f' % match.score, style=show_style_num),
+                        html.Label(' at X ',style=show_style_text),
+                        html.Label('%.2f' % match.tpc_point.x,style=show_style_num),
+                        html.Label(' ... %.1fms %dsteps (scanned %.2f to %.2f)' % (match.duration/1.e6,
+                                                                                   match.num_steps,
+                                                                                   match.minimizer_min_x,
+                                                                                   match.minimizer_max_x))]
+
+        return res
 
     app.server.run(port=port)
