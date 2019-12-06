@@ -190,7 +190,7 @@ namespace flashmatch {
           }
       }
       //std::cout << flash.time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << " " << res.tpc_point.x << std::endl;
-      res.tpc_point.x = res.tpc_point.x + (tpc0 ? -1.0 : 1.0) * flash.time * DetectorSpecs::GetME().DriftVelocity();
+      res.tpc_point.x = res.tpc_point.x + (tpc0 ? -1.0 : 1.0) * (flash.time) * DetectorSpecs::GetME().DriftVelocity();
       //std::cout << res.tpc_point.x << std::endl;
       //res.hypothesis = flash.pe_v;
       Flash_t hypothesis;
@@ -527,7 +527,7 @@ namespace flashmatch {
     if (!init_x0) {
       //reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
       // Assume this is the right flash... then
-      reco_x = _raw_xmin_pt.x - pmt.time * DetectorSpecs::GetME().DriftVelocity();
+      reco_x = _raw_xmin_pt.x - (pmt.time) * DetectorSpecs::GetME().DriftVelocity();
       if(reco_x < _vol_xmin || (reco_x + _raw_xmax_pt.x - _raw_xmin_pt.x) > _vol_xmax) {
           FLASH_INFO() << "returning invalid double" << std::endl;
           if (_minuit_ptr) delete _minuit_ptr;

@@ -2,6 +2,7 @@ import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
 from utils import FlashMatchInput
+from scipy.spatial.distance import cdist
 
 class ROOTInput:
     def __init__(self, opflashana, particleana, cfg_file=None):
@@ -40,6 +41,11 @@ class ROOTInput:
         self._exclude_reflashing = int(pset.get("ExcludeReflashing"))
         self._tpc_tree_name = str(pset.get("TPCTreeName"))
         self._pmt_tree_name = str(pset.get("PMTTreeName"))
+
+        self._clustering = int(pset.get("Clustering"))
+        self._clustering_threshold = float(pset.get("ClusteringThreshold"))
+        self._clustering_time_window = float(pset.get("ClusteringTimeWindow"))
+
         # Set seed if there is any specified
         if pset.contains_value('NumpySeed'):
             seed = int(pset.get('NumpySeed'))
@@ -55,13 +61,52 @@ class ROOTInput:
         return self._opflash[self._opflash['event'] == event]
 
     def make_qcluster(self,particles,select_pdg=[]):
-        qcluster_v = []
+        p_idx_v = []
+        xyzs_v = []
+        ts_v = []
         for p_idx, p in enumerate(particles):
             # Only use specified PDG code if pdg_code is available
-            if len(select_pdg) and int(p['pdg_code']) not in select_pdg:
+            if not self._clustering and len(select_pdg) and int(p['pdg_code']) not in select_pdg:
                 continue
             xyzs = np.column_stack([p['x_v'],p['y_v'],p['z_v']]).astype(np.float64)
-            traj = flashmatch.as_geoalgo_trajectory(xyzs)
+            if xyzs.shape[0] < 2:
+                continue
+            merged = False
+            if self._clustering:
+                # Check if there alreay exists a cluster overlapping in time
+                for i, xyzs2 in enumerate(xyzs_v):
+                    t2_min = np.min(ts_v[i])
+                    t2_max = np.max(ts_v[i])
+                    t_min = np.min(p['time_v'])
+                    t_max = np.max(p['time_v'])
+                    d = -1
+                    if t2_min >= t_min and t2_min <= t_max + self._clustering_time_window:
+                        # Find whether qclusters are actually close in space
+                        d = np.min(cdist([xyzs2[0]], xyzs))
+
+                    elif t_min >= t2_min and t_min <= t2_max + self._clustering_time_window:
+                        d = np.min(cdist(xyzs2, [xyzs[0]]))
+
+                    if d >= 0 and d < self._clustering_threshold:
+                        # Merge clusters
+                        #print('Merging', p['pdg_code'])
+                        new_ts = np.hstack([ts_v[i], p['time_v']])
+                        idx = np.argsort(new_ts)
+                        ts_v[i] = new_ts[idx]
+                        xyzs_v[i] = np.vstack([xyzs_v[i], xyzs])[idx]
+                        p_idx_v[i] = min(p_idx_v[i], p_idx)  # FIXME do we want this?
+                        merged = True
+                        break
+            if not merged:
+                xyzs_v.append(xyzs)
+                ts_v.append(p['time_v'])
+                p_idx_v.append(p_idx)
+
+        # Now looping over xyzs and making QClusters
+        qcluster_v = []
+        #print('Making qclusters from ', len(xyzs_v))
+        for i in range(len(xyzs_v)):
+            traj = flashmatch.as_geoalgo_trajectory(xyzs_v[i])
             # If configured, truncate the physical boundary here
             # (before shifting or readout truncation)
             if self._truncate_tpc_active:
@@ -72,17 +117,10 @@ class ROOTInput:
             # Make QCluster
             qcluster = self._qcluster_algo.MakeQCluster(traj)
 
-            ts=p['time_v']
-            qcluster.time_true = np.min(ts) * 1.e-3
-
-            # if qcluster.min_x() < -365:
-            #     print("touching ", qcluster.min_x(), qcluster.time_true)
-            #if qcluster.min_x() < self.det.ActiveVolume().Min()[0]:
-            #    raise Exception('** wrong  *** ', qcluster.min_x(), qcluster.max_x(), qcluster.time_true)
+            qcluster.time_true = np.min(ts_v[i]) * 1.e-3
 
             # Assign the index number of a particle
-            qcluster.idx = p_idx
-
+            qcluster.idx = p_idx_v[i]
             qcluster_v.append(qcluster)
         return qcluster_v
 
