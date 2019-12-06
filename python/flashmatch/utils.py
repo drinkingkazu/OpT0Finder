@@ -7,8 +7,10 @@ class FlashMatchInput:
         self.flash_v = []
         # input array of flashmatch::QCluster_t
         self.qcluster_v = []
-        # "RAW" flashmatch::QCluster_t (optional, may not be present)
+        # "RAW" flashmatch::QCluster_t (optional, may not be present, before x-shift)
         self.raw_qcluster_v = []
+        # "RAW" flashmatch::QCluster_t (optional, may not be present, before active BB cut)
+        self.all_pts_v = []
         # True matches, an array of integer-pairs.
         self.true_match = []
 

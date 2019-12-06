@@ -1,7 +1,7 @@
 import numpy as np
 from flashmatch import flashmatch, geoalgo
 import sys, ast
-from utils import FlashMatchInput
+from .utils import FlashMatchInput
 from scipy.spatial.distance import cdist
 
 class ROOTInput:
@@ -119,6 +119,7 @@ class ROOTInput:
 
         # Now looping over xyzs and making QClusters
         qcluster_v = []
+        all_pts_v = []
         #print('Making qclusters from ', len(xyzs_v))
         for i in range(len(xyzs_v)):
             traj = flashmatch.as_geoalgo_trajectory(xyzs_v[i])
@@ -131,13 +132,28 @@ class ROOTInput:
             if traj.size() < 2: continue;
             # Make QCluster
             qcluster = self._qcluster_algo.MakeQCluster(traj)
-
+            all_pts  = flashmatch.QCluster_t(qcluster)
+            # If configured, truncate the physical boundary here
+            if self._truncate_tpc_active:
+                bbox = self.det.ActiveVolume()
+                pt_min, pt_max = bbox.Min(), bbox.Max()
+                qcluster.drop(pt_min[0],pt_min[1],pt_min[2],
+                              pt_max[0],pt_max[1],pt_max[2])
+            # need to be non-empty
+            if qcluster.empty(): continue
             qcluster.time_true = np.min(ts_v[i]) * 1.e-3
+            all_pts.time_true = qcluster.time_true
+            # if qcluster.min_x() < -365:
+            #     print("touching ", qcluster.min_x(), qcluster.time_true)
+            #if qcluster.min_x() < self.det.ActiveVolume().Min()[0]:
+            #    raise Exception('** wrong  *** ', qcluster.min_x(), qcluster.max_x(), qcluster.time_true)
 
             # Assign the index number of a particle
             qcluster.idx = p_idx_v[i]
+            all_pts.idx = p_idx_v[i]
             qcluster_v.append(qcluster)
-        return qcluster_v
+            all_pts_v.append(all_pts)
+        return qcluster_v,all_pts_v
 
 
     def make_flash(self,opflash):
@@ -170,7 +186,7 @@ class ROOTInput:
         result = FlashMatchInput()
         # Find the list of sim::MCTrack entries for this event
         particles, opflash = self.get_entry(entry)
-        result.raw_qcluster_v = self.make_qcluster(particles,select_pdg=[13])
+        result.raw_qcluster_v,result.all_pts_v = self.make_qcluster(particles,select_pdg=[13])
         result.qcluster_v = [flashmatch.QCluster_t(tpc) for tpc in result.raw_qcluster_v]
         # If configured, shift X (for MCTrack to imitate reco)
         if self._shift_tpc:
