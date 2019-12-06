@@ -135,13 +135,21 @@ class AppManager:
         """
         if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry):
             return None
-        label_v = []
+        label_m = {}
         for idx, qc in enumerate(self.dat_manager.cpp.qcluster_v):
             label = 'Track %02d (%dpts Match=%d T=%.3fus)'
             label = label % (qc.idx, qc.size(), self.dat_manager.np_match_tpc2pmt[qc.idx], qc.time_true)
-            label_v.append(label)
-        dropdown_qcluster = [dict(label=label_v[idx], value=idx)
-                             for idx,qcluster in enumerate(self.dat_manager.np_qcluster_v)]
+            label_m[qc.time_true]=(idx,label)
+        # time order the dropdown
+        ts = list(label_m.keys())
+        ts.sort()
+        dropdown_qcluster = []
+        for t in ts:
+            idx,label = label_m[t]
+            dropdown_qcluster.append(dict(label=label, value=idx))
+        #dropdown_qcluster = [dict(label=label_v[idx], value=idx)
+        #                     for idx,qcluster in enumerate(self.dat_manager.np_qcluster_v)]
+
         dropdown_qcluster += [dict(label='All tracks',value=len(self.dat_manager.np_qcluster_v))]
         return dropdown_qcluster
 
@@ -158,23 +166,31 @@ class AppManager:
         if not self.dat_manager.update(self.ana_manager, entry=data_index, is_entry=is_entry, make_hypothesis=(not mode_flash)):
             return None
         target_v = self.dat_manager.np_flash_v if mode_flash else self.dat_manager.np_hypo_v
-        label_v = []
+        label_m = {}
         if mode_flash:
             for idx, pmt in enumerate(self.dat_manager.cpp.flash_v):
                 pesum = self.dat_manager.np_flash_v[idx].sum()
-                label = 'Flash %02d (PE=%de2 Match=%d T=%.3fus MC-T=%.2fus)'
-                label = label % (pmt.idx, pesum/100.,
-                                 self.dat_manager.np_match_pmt2tpc[pmt.idx], pmt.time, pmt.time_true)
-                label_v.append(label)
+                if not pmt.time_true == flashmatch.kINVALID_DOUBLE:
+                    label = 'Flash %02d (PE=%de2 Match=%d T=%.3fus MC-T=%.3fus)'
+                    label = label % (pmt.idx, pesum/100.,
+                                     self.dat_manager.np_match_pmt2tpc[pmt.idx], pmt.time, pmt.time_true)
+                else:
+                    label = 'Flash %02d (PE=%de2 Match=%d T=%.3fus MC-T=N/A)'
+                    label = label % (pmt.idx, pesum/100.,
+                                     self.dat_manager.np_match_pmt2tpc[pmt.idx], pmt.time)
+                label_m[pmt.time] = (idx,label)
         else:
             for idx, tpc in enumerate(self.dat_manager.cpp.qcluster_v):
                 pesum = self.dat_manager.np_hypo_v[idx].sum()
                 label = 'Hypothesis %02d (PE=%de2 MC-T=%.3fus)'
                 label = label % (tpc.idx, pesum/100., tpc.time_true)
-                label_v.append(label)
-        if mode_flash: time_v = [flash.time for flash in self.dat_manager.cpp.flash_v]
-        dropdown_flash  = [dict(label=label_v[idx],value=idx)
-                            for idx,flash in enumerate(target_v)]
+                label_m[tpc.time_true] = (idx,label)
+        ts = list(label_m.keys())
+        ts.sort()
+        dropdown_flash = []
+        for t in ts:
+            idx,label = label_m[t]
+            dropdown_flash.append(dict(label=label,value=idx))
         dropdown_flash += [dict(label='All flashes',value=len(target_v))]
         sys.stdout.flush()
         return dropdown_flash
