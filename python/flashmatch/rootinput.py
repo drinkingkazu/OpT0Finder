@@ -45,6 +45,7 @@ class ROOTInput:
         self._clustering = int(pset.get("Clustering"))
         self._clustering_threshold = float(pset.get("ClusteringThreshold"))
         self._clustering_time_window = float(pset.get("ClusteringTimeWindow"))
+        self._matching_window_opflash = ast.literal_eval(pset.get("MatchingWindowOpflash"))
 
         # Set seed if there is any specified
         if pset.contains_value('NumpySeed'):
@@ -196,6 +197,7 @@ class ROOTInput:
 
         # Assign idx now based on true timings
         tpc_matched = []
+        pmt_matched = []
         for pmt in result.flash_v:
             for tpc in result.qcluster_v:
                 if tpc.idx in tpc_matched: continue
@@ -203,6 +205,17 @@ class ROOTInput:
                 if dt < self._matching_window:
                     result.true_match.append((pmt.idx,tpc.idx))
                     tpc_matched.append(tpc.idx)
+                    pmt_matched.append(pmt.idx)
                     break
-
+        # Assign idx based on opflash timings for tpc that have not been matched
+        pmt_matched_second = []
+        for tpc in result.qcluster_v:
+            if tpc.idx in tpc_matched: continue
+            for pmt in result.flash_v:
+                if pmt.idx in pmt_matched or pmt.idx in pmt_matched_second: continue
+                if pmt.time_true > 1e5: # this opflash has no mcflash
+                    dt = (pmt.time - tpc.time_true)
+                    if dt > self._matching_window_opflash[0] and dt < self._matching_window_opflash[1]:
+                        result.true_match.append((pmt.idx, tpc.idx))
+                        pmt_matched_second.append(pmt.idx)
         return result
