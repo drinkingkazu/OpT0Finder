@@ -163,6 +163,7 @@ class ROOTInput:
                     result.qcluster_v[i] = qcluster + qcluster.xshift #+ (qcluster.min_x() - self.det.ActiveVolume().Min()[0])
                 else:
                     result.qcluster_v[i] = qcluster - qcluster.xshift #- (self.det.ActiveVolume().Max()[0] - qcluster.min_x())
+
         if self._truncate_tpc_readout:
             # Define allowed X recording regions
             min_tpcx, max_tpcx = [t * self.det.DriftVelocity() for t in self._periodTPC]

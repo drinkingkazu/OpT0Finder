@@ -168,6 +168,7 @@ namespace flashmatch {
     QPoint_t tpc_point_err; ///< error on the estimated point
 	unsigned int duration;  ///< Computation time of the match algorithm on this match (ns)
     unsigned int num_steps; ///< Number of MIGRAD steps
+    unsigned int touch_match; ///< 0 = not a touch match, 1 = touch match, 2 = touching both sides
     double minimizer_min_x;
     double minimizer_max_x;
     std::vector<double> hypothesis;       ///< Hypothesis flash object

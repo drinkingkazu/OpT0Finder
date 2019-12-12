@@ -21,10 +21,10 @@ namespace flashmatch {
   {
     _x_step_size = pset.get<double>("XStepSize");
     _zdiff_max   = pset.get<double>("ZDiffMax" );
-    _zdiff_max *= _zdiff_max; 
+    _zdiff_max *= _zdiff_max;
   }
-  
-  FlashMatch_t QWeightPoint::Match(const QCluster_t& pt_v, const Flash_t& flash)
+
+  FlashMatch_t QWeightPoint::Match(const QCluster_t& pt_v, const Flash_t& flash, const bool prohibit_touch_match)
   {
 
     if(_vis_array.pe_v.empty())
@@ -36,7 +36,7 @@ namespace flashmatch {
       std::cout<<"Not enough points!"<<std::endl;
       return f;
     }
-    
+
     _tpc_qcluster.resize(pt_v.size());
 
     // Get min & max x value
@@ -50,7 +50,7 @@ namespace flashmatch {
 
     double min_dz = 1e9;
     for(double x_offset=0; x_offset<(256.35-(x_max-x_min)); x_offset+=_x_step_size) {
-      
+
       // Create QCluster_t with this offset
 
       for(size_t i=0; i<_tpc_qcluster.size(); ++i) {
@@ -59,7 +59,7 @@ namespace flashmatch {
 	_tpc_qcluster[i].z = pt_v[i].z;
 	_tpc_qcluster[i].q = pt_v[i].q;
       }
-            
+
       FillEstimate(_tpc_qcluster,_vis_array);
 
       // Calculate amplitudes corresponding to max opdet amplitudes
@@ -74,7 +74,7 @@ namespace flashmatch {
       }
 
       double dz = std::fabs(weighted_z - flash.z);
-      
+
       if(dz < min_dz) {
 
 	min_dz = dz;
@@ -90,18 +90,18 @@ namespace flashmatch {
 	  f.tpc_point.y += DetectorSpecs::GetME().PMTPosition(pmt_index)[1] * _vis_array.pe_v[pmt_index] / vis_pe_sum;
 	}
 
-	f.tpc_point.z = weighted_z;	
+	f.tpc_point.z = weighted_z;
       }
     }
 
     f.hypothesis.clear();
-    
+
     FLASH_INFO() << "Best match Hypothesis: "
 		 << f.tpc_point.x << " : "
 		 << f.tpc_point.y << " : "
 		 << f.tpc_point.z << " ... min dist : " << min_dz
 		 << std::endl;
-  
+
     // If min-diff is bigger than assigned max, return default match (score<0)
     if( min_dz > _zdiff_max ) {
       f.tpc_point.x = f.tpc_point.y = f.tpc_point.z = -1;
