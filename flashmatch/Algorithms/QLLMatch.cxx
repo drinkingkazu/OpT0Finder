@@ -373,7 +373,7 @@ namespace flashmatch {
       throw OpT0FinderException("Cannot compute QLL for unmatched length!");
 
     double O, H, Error;
-    const double epsilon = 1.e-300;
+    const double epsilon = 1.e-6;
     for (size_t pmt_index = 0; pmt_index < hypothesis.pe_v.size(); ++pmt_index) {
 
       O = measurement.pe_v[pmt_index]; // observation

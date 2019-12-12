@@ -81,14 +81,15 @@ class ROOTInput:
                     t_min = np.min(p['time_v'])
                     t_max = np.max(p['time_v'])
                     d = -1
-                    if t2_min >= t_min and t2_min <= t_max + self._clustering_time_window:
-                        # Find whether qclusters are actually close in space
-                        d = np.min(cdist([xyzs2[0]], xyzs))
-
-                    elif t_min >= t2_min and t_min <= t2_max + self._clustering_time_window:
-                        d = np.min(cdist(xyzs2, [xyzs[0]]))
-
-                    if d >= 0 and d < self._clustering_threshold:
+                    # if t2_min >= t_min and t2_min <= t_max + self._clustering_time_window:
+                    #     # Find whether qclusters are actually close in space
+                    #     d = np.min(cdist([xyzs2[0]], xyzs))
+                    #
+                    # elif t_min >= t2_min and t_min <= t2_max + self._clustering_time_window:
+                    #     d = np.min(cdist(xyzs2, [xyzs[0]]))
+                    #
+                    # if d >= 0 and d < self._clustering_threshold:
+                    if (t2_min >= t_min and t2_min <= max(t_max, t_min + self._clustering_time_window)) or (t_min >= t2_min and t_min <= max(t2_max, t2_min + self._clustering_time_window)) :
                         # Merge clusters
                         #print('Merging', p['pdg_code'])
                         new_ts = np.hstack([ts_v[i], p['time_v']])

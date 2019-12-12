@@ -33,7 +33,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
     else:
         ihandler = ROOTInput(opflashana,particleana,cfg_file)
         event_list = np.unique(ihandler._particles['event'])
-        event_list = [28]
+        #event_list = [48, 52]
         #event_list = [6259., 6748.]
         num_tracks = None
         print('Found %d events' % len(event_list))
