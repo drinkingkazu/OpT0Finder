@@ -30,6 +30,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
     np_result = None
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
+        sys.stdout.write('Event %d\n' % ihandler.event_id(entry))
         sys.stdout.flush()
         # Generate samples
         generator_arg = entry if not toymc else num_tracks
