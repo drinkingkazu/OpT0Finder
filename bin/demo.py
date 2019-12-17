@@ -1,6 +1,4 @@
-from flashmatch import flashmatch
-from toymc import ToyMC
-from rootinput import ROOTInput
+from flashmatch import flashmatch,AnalysisManager
 import numpy as np
 
 def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):
@@ -13,50 +11,34 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
       out_file:   string for an output analysis csv file path (optional)
       num_tracks: int for number of tracks to be generated (optional)
     """
-    # create & configure flash match manager
+    # create & configure manager API
+    mgr = AnalysisManager(cfg_file,particleana,opflashana)
     cfg = flashmatch.CreatePSetFromFile(cfg_file)
     # dump config
-    sys.stdout.write(cfg.dump())
+    sys.stdout.write(mgr.dump_config())
     sys.stdout.flush()
-
-    # configure
-    mgr = flashmatch.FlashMatchManager()
-    mgr.Configure(cfg)
     # override number of tracks to simulate
     if num_tracks is not None:
         num_tracks = int(num_tracks)
 
-    event_list,ihandler = None,None
-    if particleana is None and opflashana is None:
-        ihandler = ToyMC(cfg_file)
-        event_list = range(repeat)
-    else:
-        ihandler = ROOTInput(opflashana,particleana,cfg_file)
-        event_list = np.unique(ihandler._particles['event'])
-        #event_list = [48, 52]
-        #event_list = [6259., 6748.]
-        num_tracks = None
-        print('Found %d events' % len(event_list))
+    entries=mgr.entries()
+    toymc=False
+    if len(entries) < 1:
+        toymc=True
+        entries = np.arange(repeat)
 
     np_result = None
     counter = 0
-    for event in event_list:
-        sys.stdout.write('Event %d/%d\n' %(event,len(event_list)))
+    entries = [34, 12, 10]
+    for entry in entries:
+        sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
         sys.stdout.flush()
         # Generate samples
-        match_input = ihandler.make_flashmatch_input(event if num_tracks is None else num_tracks)
-
+        generator_arg = entry if not toymc else num_tracks
+        print(generator_arg)
+        match_input = mgr.make_flashmatch_input(generator_arg)
         counter += len(match_input.true_match)
-        #continue
-
-        # Register for matching
-        mgr.Reset()
-        for pmt in match_input.flash_v:
-            mgr.Add(pmt)
-        for tpc in match_input.qcluster_v:
-            mgr.Add(tpc)
-        # Run matching
-        match_v = mgr.Match()
+        match_v = mgr.run_flash_match(match_input)
 
         # If no analysis output saving option given, return
         if not out_file:
@@ -91,7 +73,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 print(msg)
                 continue
             store = np.array([[
-                event,
+                ihandler.event_id(entry),
+                entry,
                 match.score,
                 match.touch_match,
                 pmt.idx,
@@ -178,6 +161,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
     #print(x.shape)
     names = [
         'event',
+        'entry',
         'score',
         'touch_match',
         'flash_idx',

@@ -262,13 +262,16 @@ namespace flashmatch {
 
     // Double loop over a list of tpc object & flash
     // Call matching function to inspect the compatibility.
-    std::vector<int> touch_match_index;
+
+    std::vector< std::vector<int> > touch_match;
+    int touch_match_count = 0;
     for (size_t tpc_index = 0; tpc_index < tpc_index_v.size(); ++tpc_index) {
+        std::vector<int> touch_match_index;
         touch_match_index.clear();
+        auto const& tpc   = _tpc_object_v[tpc_index_v[tpc_index]]; // Retrieve TPC object
       // Loop over flash list
       for (auto const& flash_index : flash_index_v) {
         FLASH_INFO() << "Flash index " << flash_index << std::endl;
-        auto const& tpc   = _tpc_object_v[tpc_index_v[tpc_index]]; // Retrieve TPC object
         auto const& flash = _flash_v[flash_index];    // Retrieve flash
 
         if (tpc.size() == 0 )
@@ -288,7 +291,10 @@ namespace flashmatch {
 
         // ignore this match if the score is <= 0
         if (res.score <= 0) continue;
-        if (res.score == 10 || res.score == 20) touch_match_index.push_back(flash_index);
+        if (res.score == 10 || res.score == 20) {
+            touch_match_index.push_back(flash_index);
+            ++touch_match_count;
+        }
 
         // Else we store this match. Assign TPC & flash index info
         res.tpc_id   = tpc_index_v[tpc_index];//_index;
@@ -298,7 +304,7 @@ namespace flashmatch {
         // Only storing non touch match for now
         // If >=2 instances of touch match: most likely one of them is real good and will get great score.
         // If 1 instance: can be a fraud, should keep recording other matches.
-        if (touch_match_index.size() <=1 && !(res.score == 10 || res.score == 20)) {
+        if (res.score != 10 && res.score != 20) {
             if(_store_full) {
         	  _res_tpc_flash_v[res.tpc_id][res.flash_id] = res;
         	  _res_flash_tpc_v[res.flash_id][res.tpc_id] = res;
@@ -311,20 +317,24 @@ namespace flashmatch {
               << " with Flash=" << flash_index << " @ " << flash.time
               << " ... Score=" << res.score
               << " ... PE=" << flash.TotalPE()
+              << " /hyp. PE=" << std::accumulate(res.hypothesis.begin(), res.hypothesis.end(), 0)
               << std::endl;
       }
-
+      touch_match.push_back(touch_match_index);
+  }
+    for (size_t tpc_index = 0; tpc_index < tpc_index_v.size(); ++tpc_index) {
+        auto const& touch_match_index = touch_match[tpc_index];
+        auto const& tpc   = _tpc_object_v[tpc_index_v[tpc_index]]; // Retrieve TPC object
       // Check whether we found several touch match
       if (touch_match_index.size() > 0) {
           // Run flash matching on all candidates for touch match
           //FlashMatch_t best_result;
           //double best_score = 0.;
           for (auto const& flash_index : touch_match_index) {
-              auto const& tpc   = _tpc_object_v[tpc_index_v[tpc_index]]; // Retrieve TPC object
               auto const& flash = _flash_v[flash_index];    // Retrieve flash
               // Run matching without touch match if we found more than 1 touch match
               auto start = high_resolution_clock::now();
-              auto res = _alg_flash_match->Match( tpc, flash, true );
+              auto res = _alg_flash_match->Match( tpc, flash, touch_match_count > 1 );
               auto end = high_resolution_clock::now();
               auto duration = duration_cast<nanoseconds>(end - start);
               FLASH_INFO() << "Match duration = " << duration.count() << "ns" << std::endl;
@@ -346,6 +356,7 @@ namespace flashmatch {
                         << " with Flash=" << flash_index << " @ " << flash.time
                         << " ... Score=" << res.score
                         << " ... PE=" << flash.TotalPE()
+                        << " /hyp. PE=" << std::accumulate(res.hypothesis.begin(), res.hypothesis.end(), 0)
                         << std::endl;
           }
       }

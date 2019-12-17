@@ -5,7 +5,7 @@ from utils import FlashMatchInput
 from scipy.spatial.distance import cdist
 
 class ROOTInput:
-    def __init__(self, opflashana, particleana, cfg_file=None):
+    def __init__(self, particleana, opflashana, cfg_file=None):
         self.det = flashmatch.DetectorSpecs.GetME()
         self.geoalgo = geoalgo.GeoAlgo()
         self._qcluster_algo  = None
@@ -16,6 +16,17 @@ class ROOTInput:
         from root_numpy import root2array
         self._particles = root2array(particleana, self._tpc_tree_name)
         self._opflash = root2array(opflashana, self._pmt_tree_name)
+        # Check data consistency
+        self._entries_to_event = np.unique(self._particles['event']).astype(np.int32)
+
+    def event_id(self,entry_id):
+        return self._entries_to_event[entry_id]
+
+    def entry_id(self,event_id):
+        return np.where(self._entries_to_event == event_id)[0][0]
+
+    def __len__(self):
+        return len(self._entries_to_event)
 
     def configure(self,cfg_file):
         self.cfg = flashmatch.CreatePSetFromFile(cfg_file)
@@ -55,11 +66,15 @@ class ROOTInput:
                 seed = int(time.time())
             np.random.seed(seed)
 
-    def get_particle(self,event):
-        return self._particles[self._particles['event'] == event]
+    def num_entries(self):
+        return len(self._entries_to_event)
 
-    def get_opflash(self,event):
-        return self._opflash[self._opflash['event'] == event]
+    def get_entry(self,entry):
+        event = self._entries_to_event[entry]
+        return self.get_event(event)
+
+    def get_event(self,event):
+        return self._particles[self._particles['event'] == event], self._opflash[self._opflash['event'] == event]
 
     def make_qcluster(self,particles,select_pdg=[]):
         p_idx_v = []
@@ -106,6 +121,7 @@ class ROOTInput:
 
         # Now looping over xyzs and making QClusters
         qcluster_v = []
+        all_pts_v = []
         #print('Making qclusters from ', len(xyzs_v))
         for i in range(len(xyzs_v)):
             traj = flashmatch.as_geoalgo_trajectory(xyzs_v[i])
@@ -118,13 +134,29 @@ class ROOTInput:
             if traj.size() < 2: continue;
             # Make QCluster
             qcluster = self._qcluster_algo.MakeQCluster(traj)
-
+            all_pts  = flashmatch.QCluster_t(qcluster)
+            # If configured, truncate the physical boundary here
+            # if self._truncate_tpc_active:
+            #     bbox = self.det.ActiveVolume()
+            #     pt_min, pt_max = bbox.Min(), bbox.Max()
+            #     qcluster.drop(pt_min[0],pt_min[1],pt_min[2],
+            #                   pt_max[0],pt_max[1],pt_max[2])
+            # need to be non-empty
+            if qcluster.empty(): continue
+            #ts=p['time_v']
             qcluster.time_true = np.min(ts_v[i]) * 1.e-3
+            all_pts.time_true = qcluster.time_true
+            # if qcluster.min_x() < -365:
+            #     print("touching ", qcluster.min_x(), qcluster.time_true)
+            #if qcluster.min_x() < self.det.ActiveVolume().Min()[0]:
+            #    raise Exception('** wrong  *** ', qcluster.min_x(), qcluster.max_x(), qcluster.time_true)
 
             # Assign the index number of a particle
             qcluster.idx = p_idx_v[i]
+            all_pts.idx = p_idx_v[i]
             qcluster_v.append(qcluster)
-        return qcluster_v
+            all_pts_v.append(all_pts)
+        return qcluster_v,all_pts_v
 
 
     def make_flash(self,opflash):
@@ -148,14 +180,16 @@ class ROOTInput:
         return flash_v
 
 
-    def make_flashmatch_input(self, event):
+    def make_flashmatch_input(self, entry):
         """
         Make sample from ROOT files
         """
+        if entry > len(self):
+            raise IndexError
         result = FlashMatchInput()
         # Find the list of sim::MCTrack entries for this event
-        particles = self.get_particle(event)
-        result.raw_qcluster_v = self.make_qcluster(particles,select_pdg=[13])
+        particles, opflash = self.get_entry(entry)
+        result.raw_qcluster_v,result.all_pts_v = self.make_qcluster(particles,select_pdg=[13])
         result.qcluster_v = [flashmatch.QCluster_t(tpc) for tpc in result.raw_qcluster_v]
         # If configured, shift X (for MCTrack to imitate reco)
         if self._shift_tpc:
@@ -172,7 +206,7 @@ class ROOTInput:
             for tpc in result.qcluster_v: tpc.drop(min_tpcx,max_tpcx)
 
         # Find the list of recob::OpFlash entries for this event
-        result.flash_v = self.make_flash(self.get_opflash(event))
+        result.flash_v = self.make_flash(opflash)
 
         # compute dt to previous and next flash
         for pmt in result.flash_v:

@@ -1,6 +1,6 @@
-DetectorSpecs: {
+DetectorSpecs: 
   LightYield: 24000
-  MIPdEdx: 2.2
+  MIPdEdx: 2.07
   DriftVelocity: 0.153812
   # TPC0
   MinPosition_TPC0: [-368.49,-181.86,-894.951]
@@ -11,8 +11,6 @@ DetectorSpecs: {
   # This is active BB definition (TPC0+1)
   ActiveVolumeMax: [-71.940000,134.960000,894.951000]
   ActiveVolumeMin: [-368.490000,-181.860000,-894.951000]
-  # ActiveVolumeMax: [-45, 174.8, 965]
-  # ActiveVolumeMin: [-395, -215.2, -995]
   # This is BB definition (TPC0+1)
   # ActiveVolumeMax: [-70.800000,167.710000,977.451000]
   # ActiveVolumeMin: [-369.630000,-214.610000,-977.451000]
@@ -379,4 +377,4 @@ DetectorSpecs: {
   #PMT357: [59.360000,29.350000,-872.900000]
   #PMT358: [381.070000,-76.250000,-872.900000]
   #PMT359: [59.360000,-76.250000,-872.900000]
-}
+

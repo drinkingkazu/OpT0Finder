@@ -5,10 +5,10 @@
 #include "OpT0FinderTypes.h"
 
 namespace flashmatch {
-  
+
   double QCluster_t::sum() const
   { double sum=0; for(auto const& pt : (*this)) sum += pt.q; return sum; }
-  
+
   double QCluster_t::length() const
   {
     double len=0.;
@@ -27,6 +27,22 @@ namespace flashmatch {
     for(auto const& pt : (*this)) {
       if(pt.x < x_min) continue;
       if(pt.x > x_max) continue;
+      another.push_back(pt);
+    }
+    (*this) = another;
+  }
+
+  void QCluster_t::drop(double x_min, double y_min, double z_min,
+                        double x_max, double y_max, double z_max) {
+    QCluster_t another;
+    another.reserve(this->size());
+    for(auto const& pt : (*this)) {
+      if(pt.x < x_min) continue;
+      if(pt.x > x_max) continue;
+      if(pt.y < y_min) continue;
+      if(pt.y > y_max) continue;
+      if(pt.z < z_min) continue;
+      if(pt.z > z_max) continue;
       another.push_back(pt);
     }
     (*this) = another;

@@ -29,7 +29,7 @@ namespace flashmatch {
 
   public:
 
-    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD, kIntegralLLHD };
+    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD, kIntegralLLHD, kZIP };
 
   private:
     /// Valid ctor hidden (singleton)
