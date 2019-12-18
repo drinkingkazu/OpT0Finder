@@ -246,11 +246,22 @@ class ROOTInput:
         pmt_matched_second = []
         for tpc in result.qcluster_v:
             if tpc.idx in tpc_matched: continue
+            possible_pmt_match = []
             for pmt in result.flash_v:
                 if pmt.idx in pmt_matched or pmt.idx in pmt_matched_second: continue
                 if pmt.time_true > 1e5: # this opflash has no mcflash
                     dt = (pmt.time - tpc.time_true)
                     if dt > self._matching_window_opflash[0] and dt < self._matching_window_opflash[1]:
-                        result.true_match.append((pmt.idx, tpc.idx))
-                        pmt_matched_second.append(pmt.idx)
+                        possible_pmt_match.append((pmt.idx, dt))
+            if len(possible_pmt_match) == 0: continue
+            # If several opflashes can be matched, select the closest one
+            # FIXME what if several tpc for same opflash?
+            pmt_idx_min = possible_pmt_match[0][0]
+            dt_min = possible_pmt_match[0][1]
+            for pmt_idx, dt in possible_pmt_match:
+                if dt < dt_min:
+                    pmt_idx_min = pmt_idx
+                    dt_min = dt
+            result.true_match.append((pmt_idx_min, tpc.idx))
+            pmt_matched_second.append(pmt_idx_min)
         return result

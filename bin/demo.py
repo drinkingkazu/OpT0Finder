@@ -29,7 +29,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
     np_result = None
     counter = 0
-    entries = [34, 12, 10]
+    #entries = [36]
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
         sys.stdout.flush()
@@ -73,7 +73,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 print(msg)
                 continue
             store = np.array([[
-                ihandler.event_id(entry),
+                mgr.event_id(entry),
                 entry,
                 match.score,
                 match.touch_match,
@@ -113,6 +113,10 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 pmt.time_true,
                 pmt.dt_prev,
                 pmt.dt_next,
+                pmt.max_pe(),
+                pmt.min_pe(),
+                pmt.max_pe_true(),
+                pmt.min_pe_true(),
                 match.duration,
                 match.num_steps,
                 match.minimizer_min_x,
@@ -200,6 +204,10 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         'flash_time_true',
         'flash_dt_prev',
         'flash_dt_next',
+        'flash_max_pe',
+        'flash_min_pe',
+        'flash_max_pe_true',
+        'flash_min_pe_true',
         'duration',
         'num_steps',
         'minimizer_min_x',

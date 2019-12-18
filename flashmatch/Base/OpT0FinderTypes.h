@@ -49,6 +49,23 @@ namespace flashmatch {
       idx = kINVALID_ID;
       //ROOT_idx = kINVALID_ID;
     }
+
+    /// maximum x
+    inline double max_pe() const
+    { double x=-flashmatch::kINVALID_DOUBLE; for(auto const& v : pe_v) x = std::max(x, v); return x; }
+
+    /// maximum x in pe_true_v
+    inline double max_pe_true() const
+    { double x=-flashmatch::kINVALID_DOUBLE; for(auto const& v : pe_true_v) x = std::max(x, v); return x; }
+
+    /// minimum x
+    inline double min_pe() const
+    { double x=flashmatch::kINVALID_DOUBLE; for(auto const& v : pe_v) x = std::min(x, v); return x; }
+
+    /// minimum x in pe_true_v
+    inline double min_pe_true() const
+    { double x=flashmatch::kINVALID_DOUBLE; for(auto const& v : pe_true_v) x = std::min(x, v); return x; }
+
     /// Total PE calculation
     double TotalPE() const {
       double res=0.;
