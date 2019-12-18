@@ -28,14 +28,17 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         entries = np.arange(repeat)
 
     np_result = None
+    counter = 0
+    entries = [10]
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
-        sys.stdout.write('Event %d\n' % ihandler.event_id(entry))
+        sys.stdout.write('Event %d\n' % mgr.event_id(entry))
         sys.stdout.flush()
         # Generate samples
         generator_arg = entry if not toymc else num_tracks
         print(generator_arg)
         match_input = mgr.make_flashmatch_input(generator_arg)
+        counter += len(match_input.true_match)
         match_v = mgr.run_flash_match(match_input)
 
         # If no analysis output saving option given, return
@@ -65,8 +68,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
             if not out_file:
                 print('Match ID',idx)
-                msg = '  TPC/PMT IDs %d/%d Correct? %s Score %f Trunc. %f ... reco vs. true: X %f vs. (%f, %f), PE %f vs. %f, Time %f vs. %f'
-                msg = msg % (tpc.idx, pmt.idx, correct_match, match.score, truncation, match.tpc_point.x, true_minx, true_maxx,
+                msg = '  TPC/PMT IDs %d/%d Correct? %s Touch match? %d Score %f Trunc. %f ... reco vs. true: X %f vs. (%f, %f), PE %f vs. %f, Time %f vs. %f'
+                msg = msg % (tpc.idx, pmt.idx, correct_match, match.touch_match, match.score, truncation, match.tpc_point.x, true_minx, true_maxx,
                              np.sum(match.hypothesis), np.sum(pmt.pe_v), tpc.time_true, pmt.time_true)
                 print(msg)
                 continue
@@ -74,6 +77,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 ihandler.event_id(entry),
                 entry,
                 match.score,
+                match.touch_match,
                 pmt.idx,
                 tpc.idx,
                 true_minx,
@@ -152,12 +156,15 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 np_result = np_event
             else:
                 np_result = np.concatenate([np_result,np_event],axis=0)
+    print("counter ", counter)
     if not out_file:
         return
     #print(x.shape)
     names = [
         'event',
+        'entry',
         'score',
+        'touch_match',
         'flash_idx',
         'track_idx',
         'true_min_x',

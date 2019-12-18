@@ -29,7 +29,7 @@ namespace flashmatch {
 
   public:
 
-    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD, kIntegralLLHD };
+    enum QLLMode_t { kChi2, kLLHD, kSimpleLLHD, kWeightedLLHD, kIntegralLLHD, kZIP };
 
   private:
     /// Valid ctor hidden (singleton)
@@ -56,7 +56,7 @@ namespace flashmatch {
     }
 
     /// Core function: execute matching
-    FlashMatch_t Match(const QCluster_t&, const Flash_t&);
+    FlashMatch_t Match(const QCluster_t&, const Flash_t&, const bool prohibit_touch_match=false);
 
     const Flash_t& ChargeHypothesis(const double);
     const Flash_t& Measurement() const;
@@ -94,7 +94,7 @@ namespace flashmatch {
   private:
 
       FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score, bool tpc0);
-    FlashMatch_t PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0);
+    FlashMatch_t PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0, const bool prohibit_touch_match);
 
     FlashMatch_t OnePMTMatch(const Flash_t &flash);
 

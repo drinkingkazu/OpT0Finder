@@ -2,7 +2,7 @@
  * \file QWeightPoint.h
  *
  * \ingroup Algorithms
- * 
+ *
  * \brief Class def header for a class QWeightPoint
  *
  * @author kazuhiro
@@ -18,7 +18,7 @@
 #include "flashmatch/Base/FlashMatchFactory.h"
 
 namespace flashmatch {
-  
+
   /**
      \class QWeightPoint
      Implementation of flashmatch::BaseFlashHypothesis algorithm class. \n
@@ -31,16 +31,16 @@ namespace flashmatch {
      to compute possible flash hypothesis points.\n
   */
   class QWeightPoint : public BaseFlashMatch {
-    
+
   public:
-    
+
     /// Default constructor
     QWeightPoint(const std::string name="QWeightPoint");
-    
+
     /// Default destructor
     ~QWeightPoint(){}
 
-    FlashMatch_t Match(const QCluster_t&, const Flash_t&);
+    FlashMatch_t Match(const QCluster_t&, const Flash_t&, const bool prohibit_touch_match = false);
 
   protected:
 
@@ -65,8 +65,7 @@ namespace flashmatch {
     /// creation method
     BaseFlashMatch* create(const std::string instance_name) { return new QWeightPoint(instance_name); }
   };
-  
+
 }
 #endif
-/** @} */ // end of doxygen group 
-
+/** @} */ // end of doxygen group
