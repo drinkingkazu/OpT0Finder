@@ -57,8 +57,8 @@ namespace flashmatch {
             ((DetectorSpecs::GetME().ActiveVolume().Max()[0] - trk[max_idx].x) < _threshold_extend_track) ||
             ((DetectorSpecs::GetME().ActiveVolume().Max()[1] - trk[max_idx].y) < _threshold_extend_track) ||
             ((DetectorSpecs::GetME().ActiveVolume().Max()[2] - trk[max_idx].z) < _threshold_extend_track)) {
-            std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
-            std::cout << trk.front().x << " " << trk.back().x << std::endl;
+            //std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
+            //std::cout << trk.front().x << " " << trk.back().x << std::endl;
             // Extend the track
             // Compute coordinates of final point first
             geoalgo::Vector A(trk[max_idx].x, trk[max_idx].y, trk[max_idx].z);
@@ -94,7 +94,7 @@ namespace flashmatch {
                 //std::cout << "Adding point " << current  << " " << i << " " << num_pts << std::endl;
             }
             //std::cout << " done " << trk.size() << std::endl;
-            std::cout << trk.front().x << " " << trk.back().x << std::endl;
+            //std::cout << trk.front().x << " " << trk.back().x << std::endl;
 
         }
     }

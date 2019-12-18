@@ -29,7 +29,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
     np_result = None
     counter = 0
-    entries = [10]
+    entries = [52]
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
         sys.stdout.write('Event %d\n' % mgr.event_id(entry))
