@@ -380,7 +380,7 @@ namespace flashmatch {
       throw OpT0FinderException("Cannot compute QLL for unmatched length!");
 
     double O, H, Error;
-    const double epsilon = 1.e-300;
+    const double epsilon = 1.e-6;
 
     // Determine pzero
     int count_observation = 0;
@@ -450,6 +450,15 @@ namespace flashmatch {
               if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg) << std::endl;
           }
       }
+      else if(_mode == kPEWeightedLLHD) {
+          assert(H>0);
+      	double arg = TMath::Poisson(O,H) + epsilon;
+      	if(!std::isnan(arg) && !std::isinf(arg)) {
+      	  _current_llhd -= std::log10(arg * sqrt(std::max(H,epsilon))) * std::max(H,epsilon)/hypothesis.TotalPE() ;
+      	  nvalid_pmt += 1;
+      	  if(_converged) FLASH_INFO() <<"PMT "<<pmt_index<<" O/H " << O << " / " << H << " LHD "<<arg << " -LLHD " << -1 * std::log10(arg * sqrt(std::max(H,epsilon))) * std::max(H,epsilon)/hypothesis.TotalPE() << std::endl;
+      }
+  }
       else if(_mode == kIntegralLLHD) {
 	double hmin = H-0.5;
 	double hmax = H+0.5;

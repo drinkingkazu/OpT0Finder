@@ -32,6 +32,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
     #entries = [36]
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
+        sys.stdout.write('Event %d\n' % mgr.event_id(entry))
         sys.stdout.flush()
         # Generate samples
         generator_arg = entry if not toymc else num_tracks
@@ -117,6 +118,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 pmt.min_pe(),
                 pmt.max_pe_true(),
                 pmt.min_pe_true(),
+                np.max(match.hypothesis),
+                np.min(match.hypothesis),
                 match.duration,
                 match.num_steps,
                 match.minimizer_min_x,
@@ -208,6 +211,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         'flash_min_pe',
         'flash_max_pe_true',
         'flash_min_pe_true',
+        'hypothesis_max_pe',
+        'hypothesis_min_pe',
         'duration',
         'num_steps',
         'minimizer_min_x',
