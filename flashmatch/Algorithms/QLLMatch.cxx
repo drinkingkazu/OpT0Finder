@@ -36,6 +36,7 @@ namespace flashmatch {
     _pe_hypothesis_threshold  = pset.get<double>("PEHypothesisThreshold", 1.e-6);
     _migrad_tolerance         = pset.get<double>("MIGRADTolerance", 0.1);
     _offset                   = pset.get<double>("Offset", 0.0);
+		_time_shift               = pset.get<double>("TimeShift", 0.0);
     _touching_track_window    = pset.get<double>("TouchingTrackWindow", 5.0);
     // _custom_algo              = pset.get<std::string>("CustomAlgo", "");
     // if (!_custom_algo.empty()) _alg_custom_algo = CustomAlgoFactory::get().create(_custom_algo, _custom_algo);
@@ -131,7 +132,7 @@ namespace flashmatch {
     }
 
     // Now see if Flash T0 can be consistent with an assumption MinX @ X=0.
-    double xdiff = fabs(_raw_xmin_pt.x - flash.time * DetectorSpecs::GetME().DriftVelocity());
+    double xdiff = fabs(_raw_xmin_pt.x - (flash.time-_time_shift) * DetectorSpecs::GetME().DriftVelocity());
     if( xdiff > _onepmt_xdiff_threshold ) {
       //std::cout << "XDiffThreshold not met (xdiff=" << xdiff << ")" << std::endl;
       return res;
@@ -190,7 +191,7 @@ namespace flashmatch {
           }
       }
       //std::cout << flash.time << " " << pt_v.min_x() << " " << flash.time_true << " " << pt_v.time_true << " " << res.tpc_point.x << std::endl;
-      res.tpc_point.x = res.tpc_point.x + (tpc0 ? -1.0 : 1.0) * (flash.time) * DetectorSpecs::GetME().DriftVelocity();
+      res.tpc_point.x = res.tpc_point.x + (tpc0 ? -1.0 : 1.0) * (flash.time-_time_shift) * DetectorSpecs::GetME().DriftVelocity();
       //std::cout << res.tpc_point.x << std::endl;
       //res.hypothesis = flash.pe_v;
       Flash_t hypothesis;
@@ -590,8 +591,8 @@ namespace flashmatch {
       //reco_x = ((_vol_xmax - _vol_xmin) - (_raw_xmax_pt.x - _raw_xmin_pt.x)) / 2. + _vol_xmin;
       // Assume this is the right flash... in TPC0
       //bool tpc0 = (tpc.min_x() - DetectorSpecs::GetME().ActiveVolume().Min()[0]) <= (DetectorSpecs::GetME().ActiveVolume().Max()[0] - tpc.max_x());
-      reco_x_tpc0 = _raw_xmin_pt.x - (pmt.time) * DetectorSpecs::GetME().DriftVelocity();
-      reco_x_tpc1 = _raw_xmin_pt.x + (pmt.time) * DetectorSpecs::GetME().DriftVelocity();
+      reco_x_tpc0 = _raw_xmin_pt.x - (pmt.time-_time_shift) * DetectorSpecs::GetME().DriftVelocity();
+      reco_x_tpc1 = _raw_xmin_pt.x + (pmt.time-_time_shift) * DetectorSpecs::GetME().DriftVelocity();
       double tolerance = _touching_track_window/2. * DetectorSpecs::GetME().DriftVelocity();
       bool contained_tpc0 = reco_x_tpc0 >= _vol_xmin - tolerance && (reco_x_tpc0 + _raw_xmax_pt.x - _raw_xmin_pt.x) <= _vol_xmax + tolerance;
       bool contained_tpc1 = reco_x_tpc1 >= _vol_xmin - tolerance && (reco_x_tpc1 + _raw_xmax_pt.x - _raw_xmin_pt.x) <= _vol_xmax + tolerance;

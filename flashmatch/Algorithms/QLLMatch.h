@@ -138,6 +138,7 @@ namespace flashmatch {
     double _migrad_tolerance;
     int _num_steps;
     double _offset;
+		double _time_shift;
 
     double _recox_penalty_threshold;
     double _recoz_penalty_threshold;

@@ -62,6 +62,9 @@ namespace phot{
     inline void SetMinX(float x) { fXmin = x; }
     inline void SetMinY(float x) { fYmin = x; }
     inline void SetMinZ(float x) { fZmin = x; }
+    inline void SetNvoxelsX(int x) { fNx = x; }
+    inline void SetNvoxelsY(int y) { fNy = y; }
+    inline void SetNvoxelsZ(int z) { fNz = z; }
 
     const std::vector<float>* GetAllVisibilities( double* xyz ) const;
 

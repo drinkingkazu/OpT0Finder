@@ -26,6 +26,7 @@ namespace flashmatch{
     auto min_pt = p.get<std::vector<double> >("ActiveVolumeMin");
     auto photon_max_pt = p.get<std::vector<double> >("PhotonLibraryVolumeMax");
     auto photon_min_pt = p.get<std::vector<double> >("PhotonLibraryVolumeMin");
+    auto nvoxels = p.get<std::vector<int> >("PhotonLibraryNvoxels");
     assert(max_pt.size() == 3);
     assert(min_pt.size() == 3);
     assert(max_pt[0] >= min_pt[0] &&
@@ -49,6 +50,9 @@ namespace flashmatch{
     photon_library.SetMinX(photon_min_pt[0]);
     photon_library.SetMinY(photon_min_pt[1]);
     photon_library.SetMinZ(photon_min_pt[2]);
+    photon_library.SetNvoxelsX(nvoxels[0]);
+    photon_library.SetNvoxelsY(nvoxels[1]);
+    photon_library.SetNvoxelsZ(nvoxels[2]);
 
     size_t ch=0;
     _pmt_v.clear();
