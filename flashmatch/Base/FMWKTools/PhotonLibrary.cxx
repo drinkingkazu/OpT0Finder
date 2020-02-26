@@ -188,7 +188,7 @@ namespace phot{
     //if(/*(Voxel<0)||*/(Voxel>=fNVoxels)||/*(OpChannel<0)||*/(OpChannel>=fNOpChannels))
     //  return 0;
     //else
-      return fLookupTable[Voxel][OpChannel]; 
+      return fLookupTable[Voxel][OpChannel];
   }
 
   //----------------------------------------------------

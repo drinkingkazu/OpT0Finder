@@ -56,15 +56,16 @@ namespace phot{
     inline int    GetNZ() const { return fNz; }
     inline size_t GetNOpChannels() const { return fNOpDetChannels; }
 
-    inline void SetMaxX(float x) { fXmax = x; }
-    inline void SetMaxY(float x) { fYmax = x; }
-    inline void SetMaxZ(float x) { fZmax = x; }
-    inline void SetMinX(float x) { fXmin = x; }
-    inline void SetMinY(float x) { fYmin = x; }
-    inline void SetMinZ(float x) { fZmin = x; }
-    inline void SetNvoxelsX(int x) { fNx = x; }
-    inline void SetNvoxelsY(int y) { fNy = y; }
-    inline void SetNvoxelsZ(int z) { fNz = z; }
+    inline void SetMaxX(float x) { fXmax = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetMaxY(float x) { fYmax = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetMaxZ(float x) { fZmax = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetMinX(float x) { fXmin = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetMinY(float x) { fYmin = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetMinZ(float x) { fZmin = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetNvoxelsX(int x) { fNx = x; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetNvoxelsY(int y) { fNy = y; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetNvoxelsZ(int z) { fNz = z; fVoxelDef = sim::PhotonVoxelDef(fXmin, fXmax, fNx, fYmin, fYmax, fNy, fZmin, fZmax, fNz); }
+    inline void SetNOpDetChannels(int x) { fNOpDetChannels = x; }
 
     const std::vector<float>* GetAllVisibilities( double* xyz ) const;
 
