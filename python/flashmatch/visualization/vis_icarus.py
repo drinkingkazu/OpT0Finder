@@ -4,19 +4,19 @@ import plotly.graph_objs as go
 def load_geometry_from_pset(cfg):
     import ast
     from flashmatch import flashmatch
-    pset = flashmatch.CreatePSetFromFile(cfg).get('flashmatch::PSet')('DetectorSpecs')
+    pset = flashmatch.CreatePSetFromFile(cfg).get['flashmatch::PSet']('DetectorSpecs')
     det = {}
-    det['MinPosition'] = ast.literal_eval(pset.get('PhotonLibraryVolumeMin'))
-    det['MaxPosition'] = ast.literal_eval(pset.get('PhotonLibraryVolumeMax'))
-    det['MinPosition_TPC0'] = ast.literal_eval(pset.get('MinPosition_TPC0'))
-    det['MaxPosition_TPC0'] = ast.literal_eval(pset.get('MaxPosition_TPC0'))
-    det['MinPosition_TPC1'] = ast.literal_eval(pset.get('MinPosition_TPC1'))
-    det['MaxPosition_TPC1'] = ast.literal_eval(pset.get('MaxPosition_TPC1'))
+    det['MinPosition'] = ast.literal_eval(pset.get['string']('PhotonLibraryVolumeMin'))
+    det['MaxPosition'] = ast.literal_eval(pset.get['string']('PhotonLibraryVolumeMax'))
+    det['MinPosition_TPC0'] = ast.literal_eval(pset.get['string']('MinPosition_TPC0'))
+    det['MaxPosition_TPC0'] = ast.literal_eval(pset.get['string']('MaxPosition_TPC0'))
+    det['MinPosition_TPC1'] = ast.literal_eval(pset.get['string']('MinPosition_TPC1'))
+    det['MaxPosition_TPC1'] = ast.literal_eval(pset.get['string']('MaxPosition_TPC1'))
     pmt = 0
     while 1:
         if not pset.contains_value('PMT%d' % pmt):
             break
-        det['PMT%d' % pmt] = ast.literal_eval(pset.get('PMT%d' % pmt))
+        det['PMT%d' % pmt] = ast.literal_eval(pset.get['string']('PMT%d' % pmt))
         pmt+=1
     return det
 

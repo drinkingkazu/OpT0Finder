@@ -27,33 +27,33 @@ class ToyMC:
         # PhotonLibHypothesis
         #self.mgr.GetAlgo(flashmatch.kFlashHypothesis)
         self._flash_algo = flashmatch.FlashHypothesisFactory.get().create("PhotonLibHypothesis","ToyMCHypothesis")
-        self._flash_algo.Configure(self.cfg.get('flashmatch::PSet')("PhotonLibHypothesis"))
+        self._flash_algo.Configure(self.cfg.get['flashmatch::PSet']("PhotonLibHypothesis"))
         #
         # Toy MC configuration
         #
-        pset = self.cfg.get('flashmatch::PSet')('ToyMC')
+        pset = self.cfg.get['flashmatch::PSet']('ToyMC')
         # LightPath
         #self._qcluster_algo = self.mgr.GetCustomAlgo(pset.get('QClusterAlgo'))
         self._qcluster_algo = flashmatch.CustomAlgoFactory.get().create("LightPath","ToyMCLightPath")
-        self._qcluster_algo.Configure(self.cfg.get('flashmatch::PSet')("LightPath"))
+        self._qcluster_algo.Configure(self.cfg.get['flashmatch::PSet']("LightPath"))
         # PE variation on (fake) reconstructed flash
-        self._pe_variation = float(pset.get('PEVariation'))
+        self._pe_variation = float(pset.get['string']('PEVariation'))
         # Photon estimation variation
-        self._ly_variation = float(pset.get('LightYieldVariation'))
+        self._ly_variation = float(pset.get['string']('LightYieldVariation'))
         # time algorithm keyword
-        self._time_algo = str(pset.get('TimeAlgo'))
+        self._time_algo = str(pset.get['string']('TimeAlgo'))
         # track algorithm keyword
-        self._track_algo = str(pset.get('TrackAlgo'))
+        self._track_algo = str(pset.get['string']('TrackAlgo'))
         # Number of tracks to generate at once
-        self._num_tracks = int(pset.get('NumTracks'))
+        self._num_tracks = int(pset.get['string']('NumTracks'))
         # Period in micro-seconds
-        self._periodTPC = ast.literal_eval(pset.get('PeriodTPC'))
-        self._periodPMT = ast.literal_eval(pset.get('PeriodPMT'))
+        self._periodTPC = ast.literal_eval(pset.get['string']('PeriodTPC'))
+        self._periodPMT = ast.literal_eval(pset.get['string']('PeriodPMT'))
         # Truncate TPC tracks (readout effect)
-        self._truncate_tpc = int(pset.get("TruncateTPC"))
+        self._truncate_tpc = int(pset.get['string']("TruncateTPC"))
         # Set seed if there is any specified
         if pset.contains_value('NumpySeed'):
-            seed = int(pset.get('NumpySeed'))
+            seed = int(pset.get['string']('NumpySeed'))
             if seed < 0:
                 import time
                 seed = int(time.time())

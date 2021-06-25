@@ -44,34 +44,34 @@ class ROOTInput:
         #
         # Toy MC configuration
         #
-        pset = self.cfg.get('flashmatch::PSet')('ROOTInput')
+        pset = self.cfg.get['flashmatch::PSet']('ROOTInput')
         # LightPath
         #self._qcluster_algo = self.mgr.GetCustomAlgo(pset.get('QClusterAlgo'))
         self._qcluster_algo = flashmatch.CustomAlgoFactory.get().create("LightPath","ToyMCLightPath")
-        self._qcluster_algo.Configure(self.cfg.get('flashmatch::PSet')("LightPath"))
+        self._qcluster_algo.Configure(self.cfg.get['flashmatch::PSet']("LightPath"))
         # Period in micro-seconds
-        self._periodTPC = ast.literal_eval(pset.get('PeriodTPC'))
+        self._periodTPC = ast.literal_eval(pset.get['string']('PeriodTPC'))
         # Truncate TPC tracks (readout effect)
-        self._truncate_tpc_readout = int(pset.get("TruncateTPCReadout"))
+        self._truncate_tpc_readout = int(pset.get['string']("TruncateTPCReadout"))
         # Truncate TPC tracks with active volume
-        self._truncate_tpc_active  = int(pset.get("TruncateTPCActive"))
+        self._truncate_tpc_active  = int(pset.get['string']("TruncateTPCActive"))
         # Shift TPC tracks (for MCTrack to look realistic, needs true timings)
-        self._shift_tpc = int(pset.get("ShiftXForMC"))
+        self._shift_tpc = int(pset.get['string']("ShiftXForMC"))
         # Time window to match MCFlash and MCTrack
-        self._matching_window = float(pset.get("MatchingWindow"))
+        self._matching_window = float(pset.get['string']("MatchingWindow"))
         # Whether to exclude flashes too close to each other
-        self._exclude_reflashing = int(pset.get("ExcludeReflashing"))
-        self._tpc_tree_name = str(pset.get("TPCTreeName"))
-        self._pmt_tree_name = str(pset.get("PMTTreeName"))
+        self._exclude_reflashing = int(pset.get['string']("ExcludeReflashing"))
+        self._tpc_tree_name = str(pset.get['string']("TPCTreeName"))
+        self._pmt_tree_name = str(pset.get['string']("PMTTreeName"))
 
-        self._clustering = int(pset.get("Clustering"))
-        self._clustering_threshold = float(pset.get("ClusteringThreshold"))
-        self._clustering_time_window = float(pset.get("ClusteringTimeWindow"))
-        self._matching_window_opflash = ast.literal_eval(pset.get("MatchingWindowOpflash"))
+        self._clustering = int(pset.get['string']("Clustering"))
+        self._clustering_threshold = float(pset.get['string']("ClusteringThreshold"))
+        self._clustering_time_window = float(pset.get['string']("ClusteringTimeWindow"))
+        self._matching_window_opflash = ast.literal_eval(pset.get['string']("MatchingWindowOpflash"))
 
         # Set seed if there is any specified
         if pset.contains_value('NumpySeed'):
-            seed = int(pset.get('NumpySeed'))
+            seed = int(pset.get['string']('NumpySeed'))
             if seed < 0:
                 import time
                 seed = int(time.time())

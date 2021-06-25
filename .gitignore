@@ -1,3 +1,4 @@
+*.csv
 /dat
 doc/*
 !doc/doxygenLArCV.script

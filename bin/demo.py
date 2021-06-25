@@ -1,6 +1,61 @@
 from flashmatch import flashmatch,AnalysisManager
 import numpy as np
 
+def attribute_names():
+
+    return [
+        'event',
+        'entry',
+        'score',
+        'touch_match',
+        'flash_idx',
+        'track_idx',
+        'true_min_x',
+        'true_max_x',
+        'qcluster_min_x',
+        'qcluster_max_x',
+        'reco_max_x',
+        'tpc_point_x',
+        'tpc_point_y',
+        'tpc_point_z',
+        'start_point_x',
+        'start_point_y',
+        'start_point_z',
+        'end_point_x',
+        'end_point_y',
+        'end_point_z',
+        'raw_start_point_x',
+        'raw_start_point_y',
+        'raw_start_point_z',
+        'raw_end_point_x',
+        'raw_end_point_y',
+        'raw_end_point_z',
+        'truncation',
+        'truncation_fraction',
+        'qcluster_num_points',
+        'matched',
+        'qcluster_sum',
+        'qcluster_length',
+        'qcluster_time_true',
+        'hypothesis_sum',  # Hypothesis flash sum
+        'flash_sum', # OpFlash Sum
+        'flash_true_sum', # MCFlash sum
+        'flash_time',
+        'flash_time_true',
+        'flash_dt_prev',
+        'flash_dt_next',
+        'flash_max_pe',
+        'flash_min_pe',
+        'flash_max_pe_true',
+        'flash_min_pe_true',
+        'hypothesis_max_pe',
+        'hypothesis_min_pe',
+        'duration',
+        'num_steps',
+        'minimizer_min_x',
+        'minimizer_max_x'
+    ]
+
 def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):
     """
     Run function for ToyMC
@@ -27,6 +82,12 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         toymc=True
         entries = np.arange(repeat)
 
+    if out_file:
+        import os
+        if os.path.isfile(out_file):
+            print('Output file',out_file,'already exists. Exiting...')
+            return 
+
     np_result = None
     counter = 0
     #entries = [36]
@@ -38,7 +99,6 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         generator_arg = entry if not toymc else num_tracks
         print(generator_arg)
         match_input = mgr.make_flashmatch_input(generator_arg)
-        counter += len(match_input.true_match)
         match_v = mgr.run_flash_match(match_input)
 
         # If no analysis output saving option given, return
@@ -162,62 +222,26 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
                 np_result = np_event
             else:
                 np_result = np.concatenate([np_result,np_event],axis=0)
+
+        if entry%100 == 0 and out_file:
+
+            with open(out_file,'a') as f:
+
+                if entry < 1:
+                    np.savetxt(f,np_result,delimiter=',',header=','.join(attribute_names()))
+                else:
+                    np.savetxt(f,np_result,delimiter=',')
+
+            np_result=None
+
+        counter += len(match_input.true_match)
+
+
     print("counter ", counter)
     if not out_file:
         return
     #print(x.shape)
-    names = [
-        'event',
-        'entry',
-        'score',
-        'touch_match',
-        'flash_idx',
-        'track_idx',
-        'true_min_x',
-        'true_max_x',
-        'qcluster_min_x',
-        'qcluster_max_x',
-        'reco_max_x',
-        'tpc_point_x',
-        'tpc_point_y',
-        'tpc_point_z',
-        'start_point_x',
-        'start_point_y',
-        'start_point_z',
-        'end_point_x',
-        'end_point_y',
-        'end_point_z',
-        'raw_start_point_x',
-        'raw_start_point_y',
-        'raw_start_point_z',
-        'raw_end_point_x',
-        'raw_end_point_y',
-        'raw_end_point_z',
-        'truncation',
-        'truncation_fraction',
-        'qcluster_num_points',
-        'matched',
-        'qcluster_sum',
-        'qcluster_length',
-        'qcluster_time_true',
-        'hypothesis_sum',  # Hypothesis flash sum
-        'flash_sum', # OpFlash Sum
-        'flash_true_sum', # MCFlash sum
-        'flash_time',
-        'flash_time_true',
-        'flash_dt_prev',
-        'flash_dt_next',
-        'flash_max_pe',
-        'flash_min_pe',
-        'flash_max_pe_true',
-        'flash_min_pe_true',
-        'hypothesis_max_pe',
-        'hypothesis_min_pe',
-        'duration',
-        'num_steps',
-        'minimizer_min_x',
-        'minimizer_max_x'
-    ]
+
     np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))
 
 if __name__ == '__main__':
