@@ -3,7 +3,6 @@ from flashmatch import flashmatch, geoalgo
 import sys, ast
 from .utils import FlashMatchInput
 from .constants import ParticleMass
-from scipy.spatial.distance import cdist
 
 def convert(energy_v, pdg_code):
     mass = ParticleMass[pdg_code]
@@ -100,6 +99,7 @@ class ROOTInput:
                 continue
             merged = False
             if self._clustering:
+                from scipy.spatial.distance import cdist
                 # Check if there alreay exists a cluster overlapping in time
                 for i, xyzs2 in enumerate(xyzs_v):
                     t2_min = np.min(ts_v[i])
