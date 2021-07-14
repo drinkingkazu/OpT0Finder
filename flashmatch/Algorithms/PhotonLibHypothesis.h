@@ -16,8 +16,22 @@
 #define PHOTONLIBHYPOTHESIS_H
 
 #include <iostream>
+
+#ifndef USING_LARSOFT
+#define USING_LARSOFT 1
+#endif
+
+#if USING_LARSOFT == 0
 #include "flashmatch/Base/BaseFlashHypothesis.h"
 #include "flashmatch/Base/FlashHypothesisFactory.h"
+#include "flashmatch/Base/FMWKInterface.h"
+#include "flashmatch/Base/OpT0FinderException.h"
+#else
+#include "sbncode/OpT0Finder/flashmatch/Base/BaseFlashHypothesis.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FlashHypothesisFactory.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FMWKInterface.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/OpT0FinderException.h"
+#endif
 
 namespace flashmatch {
   /**
@@ -36,11 +50,20 @@ namespace flashmatch {
 
     void FillEstimate(const QCluster_t&, Flash_t&) const;
 
+    void BuildHypothesis(const QCluster_t& trk, Flash_t &flash) const;
+
+    bool InspectTouchingEdges(const QCluster_t&, size_t&, size_t&) const;
+
+    QCluster_t TrackExtension(const QCluster_t&, const size_t, const size_t) const;
+
+    void TrackExtension(const QCluster_t&, Flash_t&) const;
+
   protected:
 
     void _Configure_(const Config_t &pset);
 
     double _global_qe;             ///< Global QE
+    double _global_qe_refl;        ///< Global QE for reflected light
     double _sigma_qe;              ///< Sigma for Gaussian centered on Global QE
     std::vector<double> _qe_v;     ///< PMT-wise relative QE
     double _segment_size;

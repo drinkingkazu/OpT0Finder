@@ -2,7 +2,6 @@
 #define LightPath_CXX
 
 #include "LightPath.h"
-#include "flashmatch/GeoAlgo/GeoTrajectory.h"
 
 namespace flashmatch {
 

@@ -127,13 +127,14 @@ namespace flashmatch {
     if (_alg_flash_hypothesis)
       _alg_flash_hypothesis->Configure(main_cfg.get<flashmatch::Config_t>(_alg_flash_hypothesis->AlgorithmName()));
 
-    for (auto& name_ptr : _custom_alg_m)
+    for (auto& name_ptr : _custom_alg_m) {
       name_ptr.second->Configure(main_cfg.get<flashmatch::Config_t>(name_ptr.first));
+    }
 
-      if (_alg_flash_match) {
-        _alg_flash_match->SetFlashHypothesis(_alg_flash_hypothesis);
-        _alg_flash_match->Configure(main_cfg.get<flashmatch::Config_t>(_alg_flash_match->AlgorithmName()));
-      }
+    if (_alg_flash_match) {
+      _alg_flash_match->SetFlashHypothesis(_alg_flash_hypothesis);
+      _alg_flash_match->Configure(main_cfg.get<flashmatch::Config_t>(_alg_flash_match->AlgorithmName()));
+    }
 
     _configured = true;
   }

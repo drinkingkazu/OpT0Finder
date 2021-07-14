@@ -14,9 +14,24 @@
 #ifndef QLLMATCH_H
 #define QLLMATCH_H
 
-#include <iostream>
-#include "flashmatch/Base/FlashMatchFactory.h"
+#ifndef USING_LARSOFT
+#define USING_LARSOFT 1
+#endif
+
+#if USING_LARSOFT == 0
 #include "flashmatch/Base/BaseFlashMatch.h"
+#include "flashmatch/Base/FlashMatchFactory.h"
+#include "flashmatch/Base/FMWKInterface.h"
+#include "flashmatch/Base/OpT0FinderException.h"
+#else
+#include "sbncode/OpT0Finder/flashmatch/Base/BaseFlashMatch.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FlashMatchFactory.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FMWKInterface.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/OpT0FinderException.h"
+#endif
+
+
+#include <iostream>
 #include <TMinuit.h>
 #include <TF2.h>
 namespace flashmatch {

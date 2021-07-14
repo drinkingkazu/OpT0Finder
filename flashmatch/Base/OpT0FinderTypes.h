@@ -115,7 +115,7 @@ namespace flashmatch {
   /// Collection of charge deposition 3D point (cluster)
   class QCluster_t : public std::vector<QPoint_t>{
   public:
-    ID_t idx;     ///< index from original larlite vector
+    ID_t idx;     ///< index from original container
     //ID_t ROOT_idx;///< index in original root file
     double time;  ///< assumed time w.r.t. trigger for reconstruction
     double time_true; ///< Time from MCTrack information
@@ -187,7 +187,7 @@ namespace flashmatch {
     double score;  ///< floating point representing the "goodness" (algorithm dependent)
     QPoint_t tpc_point; ///< estimated & matched 3D flash hypothesis point from TPC information
     QPoint_t tpc_point_err; ///< error on the estimated point
-	unsigned int duration;  ///< Computation time of the match algorithm on this match (ns)
+	  unsigned int duration;  ///< Computation time of the match algorithm on this match (ns)
     unsigned int num_steps; ///< Number of MIGRAD steps
     unsigned int touch_match; ///< 0 = not a touch match, 1 = touch match, 2 = touching both sides
     double minimizer_min_x;
@@ -195,12 +195,12 @@ namespace flashmatch {
     std::vector<double> hypothesis;       ///< Hypothesis flash object
     /// Default ctor assigns invalid values
     FlashMatch_t() : hypothesis()
-    { tpc_id = kINVALID_ID; flash_id = kINVALID_ID; score = -1; }
+    { tpc_id = kINVALID_ID; flash_id = kINVALID_ID; score = duration = -1;}
     /// Alternative ctor
     FlashMatch_t(const ID_t& tpc_id_value,
 		 const ID_t& flash_id_value,
 		 const double& score_value) : hypothesis()
-    { tpc_id = tpc_id_value; flash_id = flash_id_value; score = score_value; }
+    { tpc_id = tpc_id_value; flash_id = flash_id_value; score = score_value; duration = -1;}
 #ifndef __CINT__ // hyde move from fucking CINT cuz it's fucked
     /// Alternative ctor
     FlashMatch_t(const ID_t& tpc_id_value,

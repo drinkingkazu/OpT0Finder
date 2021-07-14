@@ -14,27 +14,14 @@
 #ifndef OPT0FINDER_NPTFILTER_H
 #define OPT0FINDER_NPTFILTER_H
 
-#ifndef USING_LARSOFT
-#define USING_LARSOFT 1
-#endif
+#include "OpT0Finder/Base/BaseTPCFilter.h"
+#include "OpT0Finder/Base/TPCFilterFactory.h"
 
-#if USING_LARSOFT == 0
-#include "flashmatch/Base/BaseTPCFilter.h"
-#include "flashmatch/Base/TPCFilterFactory.h"
-#include "flashmatch/Base/FMWKInterface.h"
-#include "flashmatch/Base/OpT0FinderException.h"
-#else
-#include "sbncode/OpT0Finder/flashmatch/Base/BaseTPCFilter.h"
-#include "sbncode/OpT0Finder/flashmatch/Base/TPCFilterFactory.h"
-#include "sbncode/OpT0Finder/flashmatch/Base/FMWKInterface.h"
-#include "sbncode/OpT0Finder/flashmatch/Base/OpT0FinderException.h"
-#endif
-
-namespace flashmatch {
+namespace flashana {
   /**
      \class NPtFilter
-     Implementation of flashmatch::BaseTPCFilter abstract algorithm class. \n
-     It applies a _very_ simple filtering: excludes TPC objects (flashmatch::QCluster_t) \n
+     Implementation of flashana::BaseTPCFilter abstract algorithm class. \n
+     It applies a _very_ simple filtering: excludes TPC objects (flashana::QCluster_t) \n
      that contains less than specified number of points. \n
   */
   class NPtFilter : public BaseTPCFilter{
@@ -64,7 +51,7 @@ namespace flashmatch {
   };
 
   /**
-     \class flashmatch::NPtFilterFactory
+     \class flashana::NPtFilterFactory
   */
   class NPtFilterFactory : public TPCFilterFactoryBase {
   public:

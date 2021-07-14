@@ -14,10 +14,25 @@
 #ifndef CHARGEANALYTICAL_H
 #define CHARGEANALYTICAL_H
 
+
+#ifndef USING_LARSOFT
+#define USING_LARSOFT 1
+#endif
+
+#if USING_LARSOFT == 0
 #include "flashmatch/Base/BaseFlashHypothesis.h"
 #include "flashmatch/Base/FlashHypothesisFactory.h"
+#include "flashmatch/Base/FMWKInterface.h"
+#include "flashmatch/Base/OpT0FinderException.h"
+#else
+#include "sbncode/OpT0Finder/flashmatch/Base/BaseFlashHypothesis.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FlashHypothesisFactory.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FMWKInterface.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/OpT0FinderException.h"
+#endif
 
 #include <iostream>
+#include <cmath>
 
 namespace flashmatch {
 

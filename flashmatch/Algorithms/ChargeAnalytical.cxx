@@ -2,8 +2,6 @@
 #define CHARGEANALYTICAL_CXX
 
 #include "ChargeAnalytical.h"
-#include "flashmatch/Base/FMWKInterface.h"
-#include "flashmatch/Base/OpT0FinderException.h"
 #include <math.h>
 
 namespace flashmatch {

@@ -87,7 +87,7 @@ namespace phot{
     bool IsBuildJob() const { return fLibraryBuildJob; }
     bool UseParameterization() const {return fParameterization;}
 
-    sim::PhotonVoxelDef GetVoxelDef() const {return fVoxelDef; }
+    const sim::PhotonVoxelDef& GetVoxelDef() const {return fVoxelDef; }
     int NOpChannels() const { return fNOpDetChannels; }
 
     const std::string& GetLibraryFilename() { return fLibraryFile; }; // Allows one to check loaded filename

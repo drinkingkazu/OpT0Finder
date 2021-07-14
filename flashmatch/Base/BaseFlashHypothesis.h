@@ -27,9 +27,7 @@ namespace flashmatch {
   public:
 
     /// Default constructor
-    BaseFlashHypothesis(const std::string name="noname")
-      : flashmatch::BaseAlgorithm(flashmatch::kFlashHypothesis,name)
-    {}
+    BaseFlashHypothesis(const std::string name="noname");
     
     /// Default destructor
     ~BaseFlashHypothesis(){}
@@ -39,6 +37,17 @@ namespace flashmatch {
 
     /// Method to simply fill provided reference of flashmatch::Flash_t
     virtual void FillEstimate(const QCluster_t&, Flash_t&) const = 0;
+
+    /// Sets the channels to use
+    void SetChannelMask(std::vector<size_t> ch_mask);
+
+    /// Sets the channels sensitive to visible light
+    void SetUncoatedPMTs(std::vector<size_t> ch_uncoated);
+
+  protected:
+
+    std::vector<bool> _channel_mask; ///< The list of channels to use
+    std::vector<bool> _uncoated_pmt_list; ///< A list of opdet sensitive to visible (reflected) light
 
   };
 }

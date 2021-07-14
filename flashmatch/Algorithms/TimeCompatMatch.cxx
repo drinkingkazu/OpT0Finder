@@ -2,8 +2,6 @@
 #define OPT0FINDER_TIMECOMPATMATCH_CXX
 
 #include "TimeCompatMatch.h"
-#include "flashmatch/Base/FMWKInterface.h"
-#include "flashmatch/Base/OpT0FinderException.h"
 #include <cmath>
 #include <sstream>
 

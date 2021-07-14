@@ -5,24 +5,34 @@
 #define USING_LARSOFT 1
 #endif
 
+#include "OpT0FinderException.h"
+#include "LoggerFeature.h"
+
 #if USING_LARSOFT == 0
 #include "FMWKTools/ConfigManager.h"
+#include "flashmatch/GeoAlgo/GeoAABox.h"
 #include "FMWKTools/PhotonVoxels.h"
 namespace flashmatch {
   /// Configuration object
   using Config_t = flashmatch::PSet;
 }
 #else
+#include "sbncode/OpT0Finder/flashmatch/GeoAlgo/GeoAABox.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "larsim/PhotonPropagation/PhotonVisibilityService.h"
+#include "larcore/Geometry/Geometry.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
 namespace flashmatch{
   /// Configuration object
-  using Config_t = fhicl::FhiclParameterSet;
+  using Config_t = fhicl::ParameterSet;
 }
 #endif
 
-#include "flashmatch/GeoAlgo/GeoAABox.h"
+
 namespace flashmatch {
 
-  class DetectorSpecs {
+  class DetectorSpecs : public LoggerFeature {
 
   public:
     DetectorSpecs(std::string filename="specs.cfg");
@@ -39,7 +49,12 @@ namespace flashmatch {
 
     /// Detector active volume
     inline const geoalgo::AABox& ActiveVolume() const { return _bbox; }
+
+    /// Photon library volume
     inline const geoalgo::AABox& PhotonLibraryVolume() const { return _photon_bbox; } // TODO find better name
+
+    /// Detector active volume given cryo and tpc
+    const geoalgo::AABox& ActiveVolume(int tpc, int cryo=0) const;
 
     /// # of PMTs
     inline size_t NOpDets() const { return _pmt_v.size(); }
@@ -52,23 +67,31 @@ namespace flashmatch {
 
     /// MIP dE/dx
     inline double MIPdEdx() const { return _MIPdEdx; }
-
+    
     /// Visibility
     float GetVisibility(double x, double y, double z, unsigned int opch) const;
 
+    /// Visibility Reflected
+    float GetVisibilityReflected(double x, double y, double z, unsigned int opch) const;
+
+    float GetVisibility(int vox_id, unsigned int opch) const;
+
+    float GetVisibilityReflected(int vox_id, unsigned int opch) const;
+
+    #if USING_LARSOFT == 0
     /// Photon Library data access FIXME
     const std::vector<std::vector<float > >& GetPhotonLibraryData() const;
-
+    #endif
+    
     /// Voxel definition
-    inline const sim::PhotonVoxelDef& GetVoxelDef() const { return _voxel_def; }
+    const sim::PhotonVoxelDef& GetVoxelDef() const;
 
   private:
     static DetectorSpecs* _me;
     std::vector<geoalgo::Point_t> _pmt_v;
-    geoalgo::AABox _bbox;
-    geoalgo::AABox _photon_bbox;
+    geoalgo::AABox _bbox, _photon_bbox;
+    std::map<std::pair<int, int>, geoalgo::AABox> _bbox_map; ///< A bbox map (cryo,tpc) -> bbox
     double _drift_velocity;
-    sim::PhotonVoxelDef _voxel_def;
     double _light_yield;
     double _MIPdEdx;
   };

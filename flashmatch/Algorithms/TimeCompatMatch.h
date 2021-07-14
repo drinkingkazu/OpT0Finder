@@ -14,8 +14,26 @@
 #ifndef OPT0FINDER_TIMECOMPATMATCH_H
 #define OPT0FINDER_TIMECOMPATMATCH_H
 
+#ifndef USING_LARSOFT
+#define USING_LARSOFT 1
+#endif
+
+#if USING_LARSOFT == 0
+
 #include "flashmatch/Base/BaseProhibitAlgo.h"
 #include "flashmatch/Base/FlashProhibitFactory.h"
+#include "flashmatch/Base/FMWKInterface.h"
+#include "flashmatch/Base/OpT0FinderException.h"
+#else
+#include "sbncode/OpT0Finder/flashmatch/Base/BaseProhibitAlgo.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FlashProhibitFactory.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/FMWKInterface.h"
+#include "sbncode/OpT0Finder/flashmatch/Base/OpT0FinderException.h"
+#endif
+
+#include <cmath>
+#include <sstream>
+
 
 namespace flashmatch {
   

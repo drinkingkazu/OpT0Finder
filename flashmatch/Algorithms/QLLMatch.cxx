@@ -2,8 +2,6 @@
 #define QLLMATCH_CXX
 
 #include "QLLMatch.h"
-#include "flashmatch/Base/FMWKInterface.h"
-#include "flashmatch/Base/OpT0FinderException.h"
 #include <TMinuit.h>
 #include <cmath>
 #include <numeric>
@@ -259,7 +257,7 @@ namespace flashmatch {
     }
 
     FLASH_INFO() << "true time " << pt_v.time_true << " " << flash.time_true << std::endl;
-    auto return_value = this->CallMinuit(pt_v, flash, init_x0);
+    this->CallMinuit(pt_v, flash, init_x0);
     // Shit happens line above in CallMinuit
 
     // Estimate position

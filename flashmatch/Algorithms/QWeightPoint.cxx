@@ -2,8 +2,6 @@
 #define OPT0FINDER_QWEIGHTPOINT_CXX
 
 #include "QWeightPoint.h"
-#include "flashmatch/Base/FMWKInterface.h"
-#include "flashmatch/Base/OpT0FinderException.h"
 #include <cmath>
 #include <sstream>
 #include <numeric>
