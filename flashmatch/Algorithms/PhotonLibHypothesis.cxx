@@ -149,7 +149,10 @@ namespace flashmatch {
 
         size_t n_pmt = DetectorSpecs::GetME().NOpDets();
         //auto const& lib_data = DetectorSpecs::GetME().GetPhotonLibraryData();
+        
+        #if USING_LARSOFT == 0
         #pragma omp parallel
+        #endif
         {
             size_t num_pts  = trk.size();
             size_t start_pt = 0;
