@@ -74,7 +74,6 @@ namespace sim {
     
     fLowerCorner = TVector3(xMin,yMin,zMin);
     fUpperCorner = TVector3(xMax,yMax,zMax);
-    std::cout<<fUpperCorner[0]<<" "<<fLowerCorner[0]<<std::endl;
   }
 
   //----------------------------------------------------------------------------

@@ -46,6 +46,7 @@ namespace flashmatch{
     _photon_bbox = geoalgo::AABox(photon_min_pt[0], photon_min_pt[1], photon_min_pt[2], photon_max_pt[0], photon_max_pt[1], photon_max_pt[2]);
 
     phot::PhotonVisibilityService& photon_library = phot::PhotonVisibilityService::GetME();
+    photon_library.LoadLibrary();
     photon_library.SetMaxX(photon_max_pt[0]);
     photon_library.SetMaxY(photon_max_pt[1]);
     photon_library.SetMaxZ(photon_max_pt[2]);

@@ -60,7 +60,6 @@ namespace sim {
 
 #ifndef __GCCXML__
   public:
-    void print() const { std::cout<<fUpperCorner[0]<<std::endl;}
     TVector3 GetRegionUpperCorner() const;
     TVector3 GetRegionLowerCorner() const;
     TVector3 GetSteps() const;
