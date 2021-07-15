@@ -56,7 +56,7 @@ def attribute_names():
         'minimizer_max_x'
     ]
 
-def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None):
+def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflashana=None,start_entry=0,num_entries=-1):
     """
     Run function for ToyMC
     ---------
@@ -77,10 +77,24 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         num_tracks = int(num_tracks)
 
     entries=mgr.entries()
+
     toymc=False
     if len(entries) < 1:
         toymc=True
         entries = np.arange(repeat)
+    else: 
+
+        if start_entry <0:
+            return
+        else:
+            entries = np.arange(start_entry,max(entries)+1)
+            if len(entries) < 1:
+                return 
+
+        if num_entries >0:
+            entries = np.arange(start_entry,min(start_entry+num_entries,max(entries)+1))
+            if len(entries)<1:
+                return
 
     if out_file:
         import os
@@ -242,7 +256,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
         return
     #print(x.shape)
 
-    np.savetxt(out_file, np_result, delimiter=',', header=','.join(names))
+    np.savetxt(out_file, np_result, delimiter=',', header=','.join(attribute_names()))
 
 if __name__ == '__main__':
     import os,sys
@@ -251,6 +265,8 @@ if __name__ == '__main__':
                             'dat', 'flashmatch.cfg')
     num_tracks = 5
     particleana, opflashana = None, None
+    start_entry = 0
+    num_entries = -1
     outfile = ''
     if len(sys.argv) > 1:
         if len(sys.argv) == 2:
@@ -259,9 +275,13 @@ if __name__ == '__main__':
             num_tracks = None
             particleana = sys.argv[1]
             opflashana = sys.argv[2]
-            print(particleana, opflashana)
             if len(sys.argv) > 3:
                 outfile = sys.argv[3]
+            if len(sys.argv) >= 4:
+                start_entry = int(sys.argv[4])
+            if len(sys.argv) >=5:
+                num_entries = int(sys.argv[5])
+
         # for argv in sys.argv[1:]:
         #     if argv.isdigit():
         #         num_tracks = int(argv)
@@ -275,4 +295,4 @@ if __name__ == '__main__':
         print('particleana', particleana)
         print('opflashana', opflashana)
         print('outfile', outfile)
-        demo(cfg_file, particleana=particleana, opflashana=opflashana, out_file=outfile)
+        demo(cfg_file, particleana=particleana, opflashana=opflashana, out_file=outfile, start_entry=start_entry, num_entries=num_entries)
