@@ -10,7 +10,7 @@
 
 #if USING_LARSOFT == 0
 #include <omp.h>
-#define NUM_THREADS 12
+#define NUM_THREADS 1
 #endif
 
 //using namespace std::chrono;
