@@ -17,6 +17,7 @@ namespace flashmatch {
   using Config_t = flashmatch::PSet;
 }
 #else
+#include "lardataobj/Utilities/LazyVector.h"
 #include "sbncode/OpT0Finder/flashmatch/GeoAlgo/GeoAABox.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "larsim/PhotonPropagation/PhotonVisibilityService.h"
@@ -79,8 +80,10 @@ namespace flashmatch {
     float GetVisibilityReflected(int vox_id, unsigned int opch) const;
 
     #if USING_LARSOFT == 0
-    /// Photon Library data access FIXME
-    const std::vector<std::vector<float > >& GetPhotonLibraryData() const;
+    /// Photon Library data access
+    const std::vector<float>& GetLibraryEntries(int vox_id) const;
+    #else
+    phot::IPhotonLibrary::Counts_t GetLibraryEntries(int vox_id, bool reflWanted=false) const;
     #endif
     
     /// Voxel definition

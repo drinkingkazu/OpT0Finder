@@ -148,9 +148,7 @@ namespace flashmatch {
     {
 
         size_t n_pmt = DetectorSpecs::GetME().NOpDets();
-        //auto const& lib_data = DetectorSpecs::GetME().GetPhotonLibraryData();
-        
-        #if USING_LARSOFT == 0
+	#if USING_LARSOFT == 0
         #pragma omp parallel
         #endif
         {
@@ -187,22 +185,28 @@ namespace flashmatch {
                 pos[1] = pt.y;
                 pos[2] = pt.z;
                 nproc0 += 1; // for debug cout
-                //auto const& vis_pmt = lib_data[vox_id];
-                //int vox_id = vox_def.GetVoxelID(pt.x,pt.y,pt.z);
+
                 int vox_id = vox_def.GetVoxelID(pos);
                 if (vox_id < 0) continue;
+
+		auto const& lib_data = DetectorSpecs::GetME().GetLibraryEntries(vox_id);
+
+		#if USING_LARSOFT == 1
+		auto const& lib_data_refl = DetectorSpecs::GetME().GetLibraryEntries(vox_id,true);
+		#endif
 
                 nproc1 += 1; // for debug cout
                 for(size_t ipmt=0; ipmt < n_pmt; ++ipmt) {
 
                     if(_channel_mask[ipmt]) continue;
 
-                    if(_global_qe_refl > 0.)
-                        local_pe_refl_v[ipmt] += pt.q * DetectorSpecs::GetME().GetVisibilityReflected(vox_id,ipmt);
-
                     if(!_uncoated_pmt_list[ipmt])
-                        local_pe_v[ipmt] += pt.q * DetectorSpecs::GetME().GetVisibility(vox_id, ipmt);
+		      local_pe_v[ipmt] += pt.q * lib_data[ipmt];
 
+		    #if USING_LARSOFT == 1
+		    if(_global_qe_refl > 0.)
+		      local_pe_refl_v[ipmt] += pt.q * lib_data_refl[ipmt];
+                    #endif
                     //local_pe_v[ipmt] += pt.q * vis_pmt[ipmt];
                     //std::cout << "PMT : " << ipmt << " [x,y,z] -> [q] : [" << pt.x << ", " << pt.y << ", " << pt.z << "] -> [" << q0 << "," << q1 << "]" << std::endl;
                 }

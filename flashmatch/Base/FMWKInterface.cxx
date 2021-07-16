@@ -97,8 +97,8 @@ namespace flashmatch{
   float DetectorSpecs::GetVisibilityReflected(int vox_id, unsigned int opch) const
   { return -1; }
 
-  const std::vector<std::vector<float > >& DetectorSpecs::GetPhotonLibraryData() const
-  { return phot::PhotonVisibilityService::GetME().GetLibraryData(); }
+  const std::vector<float>& DetectorSpecs::GetLibraryEntries(int vox_id) const
+  { return phot::PhotonVisibilityService::GetME().GetLibraryData()[vox_id]; }
 
   const sim::PhotonVoxelDef& DetectorSpecs::GetVoxelDef() const
   {
@@ -189,6 +189,11 @@ namespace flashmatch{
   const sim::PhotonVoxelDef& DetectorSpecs::GetVoxelDef() const {
     art::ServiceHandle<phot::PhotonVisibilityService const> pvs;
     return pvs->GetVoxelDef();
+  }
+
+  phot::IPhotonLibrary::Counts_t DetectorSpecs::GetLibraryEntries(int vox_id, bool reflWanted) const {
+    art::ServiceHandle<phot::PhotonVisibilityService const> pvs;
+    return pvs->GetLibraryEntries(vox_id,reflWanted);
   }
 
   const geoalgo::AABox& DetectorSpecs::ActiveVolume(int tpc, int cryo) const {
