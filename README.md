@@ -2,7 +2,7 @@
 ICARUS implementation of OpT0Finder. To get started, go to README under `flashmatch/Base`.
 
 ## Requirements
-* ROOT version >= 6
+* ROOT version >= 6.22
 * Python >= 3.6
 
 ## How to build
