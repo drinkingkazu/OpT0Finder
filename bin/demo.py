@@ -277,9 +277,9 @@ if __name__ == '__main__':
             opflashana = sys.argv[2]
             if len(sys.argv) > 3:
                 outfile = sys.argv[3]
-            if len(sys.argv) >= 4:
+            if len(sys.argv) > 4:
                 start_entry = int(sys.argv[4])
-            if len(sys.argv) >=5:
+            if len(sys.argv) > 5:
                 num_entries = int(sys.argv[5])
 
         # for argv in sys.argv[1:]:
