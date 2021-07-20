@@ -92,7 +92,7 @@ class ROOTInput:
         ts_v = []
         for p_idx, p in enumerate(particles):
             # Only use specified PDG code if pdg_code is available
-            if (not self._clustering and len(select_pdg) and (int(p['pdg_code']) not in select_pdg)) or int(p['pdg_code']) in exclude_pdg:
+            if not self._clustering or (len(select_pdg) and (int(p['pdg_code']) not in select_pdg)) or int(p['pdg_code']) in exclude_pdg:
                 continue
             xyzs = np.column_stack([p['x_v'],p['y_v'],p['z_v']]).astype(np.float64)
             if xyzs.shape[0] < 2:

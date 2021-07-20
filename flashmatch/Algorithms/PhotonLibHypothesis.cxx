@@ -10,7 +10,7 @@
 
 #if USING_LARSOFT == 0
 #include <omp.h>
-#define NUM_THREADS 1
+#define NUM_THREADS 12
 #endif
 
 //using namespace std::chrono;
@@ -32,6 +32,7 @@ namespace flashmatch {
 
         _global_qe = pset.get<double>("GlobalQE");
         _global_qe_refl = pset.get<double>("GlobalQERefl", -1);
+        _reco_pe_calib = pset.get<double>("RecoPECalibFactor",1.0);
         _extend_tracks = pset.get<bool>("ExtendTracks", false);
         _threshold_extend_track = pset.get<double>("ThresholdExtendTrack", 5.0);
         _segment_size = pset.get<double>("SegmentSize", 0.5);
@@ -218,8 +219,8 @@ namespace flashmatch {
             {
                 double qsum = 0.; // for debug cout
                 for(size_t ipmt = 0; ipmt < n_pmt; ++ipmt) {
-                    double q0 = (local_pe_v[ipmt] * _global_qe / _qe_v[ipmt]);
-                    double q1 = (local_pe_refl_v[ipmt] * _global_qe_refl * _qe_v[ipmt]);
+                    double q0 = (local_pe_v[ipmt] * _global_qe * _reco_pe_calib / _qe_v[ipmt]);
+                    double q1 = (local_pe_refl_v[ipmt] * _global_qe_refl * _reco_pe_calib / _qe_v[ipmt]);
                     double q = q0 + q1;
                     flash.pe_v[ipmt] +=  q;
                     qsum += q; // for debug cout
