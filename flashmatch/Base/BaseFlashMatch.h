@@ -52,7 +52,7 @@ namespace flashmatch {
        same flash to multiple TPC object or not. If not allowed, a match with a higher "score"  \n
        in the return object is chosen.
      */
-    virtual FlashMatch_t Match(const QCluster_t&, const Flash_t&, const bool prohibit_touch_match = false) = 0;
+    virtual void Match(const QCluster_t&, const Flash_t&, FlashMatch_t& match) = 0;
 
     /// Method to call flash hypothesis
     Flash_t GetEstimate(const QCluster_t&) const;

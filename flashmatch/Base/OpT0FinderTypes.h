@@ -6,6 +6,13 @@
 #include "OpT0FinderConstants.h"
 #include <string>
 #include <cmath>
+
+#if USING_LARSOFT == 0
+#include "flashmatch/GeoAlgo/GeoVector.h"
+#else
+#include "sbncode/OpT0Finder/flashmatch/GeoAlgo/GeoVector.h"
+#endif
+
 namespace flashmatch {
 
   /// Index used to identify Flash_t/QPointCollection_t uniquely in an event
@@ -21,6 +28,8 @@ namespace flashmatch {
     kMatchProhibit,   ///< Algorithm type to prohibit a match between a flash and a cluster
     kFlashHypothesis, ///< Algorithm type to make QCluster_t => Flash_t hypothesis
     kCustomAlgo,      ///< Algorithm type that does not play a role in the framework execution but inherits from BaseAlgorithm
+    kTouchMatch,      ///< Algorithm type to match flash time and TPC object based on geometry
+    kMatchSelect,     ///< Algorithm type to select the final set of matched pairs
     kAlgorithmTypeMax ///< enum flag for algorithm type count & invalid type
   };
 
@@ -137,6 +146,18 @@ namespace flashmatch {
     void drop(double xmin, double ymin, double zmin,
               double xmax, double ymax, double zmax);
 
+    /// minimum x point
+    void min_x(flashmatch::QPoint_t& qpt) const;
+
+    /// minimum x point
+    void min_x(geoalgo::Point_t& pt) const;
+
+    /// maximum x point
+    void max_x(flashmatch::QPoint_t& qpt) const;
+
+    /// maximum x point
+    void max_x(geoalgo::Point_t& pt) const;
+
     /// minimum x
     inline double min_x() const
     { double x=flashmatch::kINVALID_DOUBLE; for(auto const& pt : (*this)) x = std::min(x,pt.x); return x; }
@@ -180,35 +201,42 @@ namespace flashmatch {
   /// Index collection
   typedef std::vector<flashmatch::ID_t> IDArray_t;
 
+  /// Enum to define a type of touch match
+  enum TouchMatch_t {
+    kNoTouchMatch,
+    kAnodeCrossing,
+    kCathodeCrossing,
+    kAnodeCathodeCrossing
+  };
+
   /// Flash-TPC match info
   struct FlashMatch_t {
     ID_t tpc_id;   ///< matched TPC object ID
     ID_t flash_id; ///< matched Flash ID
-    double score;  ///< floating point representing the "goodness" (algorithm dependent)
-    QPoint_t tpc_point; ///< estimated & matched 3D flash hypothesis point from TPC information
-    QPoint_t tpc_point_err; ///< error on the estimated point
+    std::vector<double> hypothesis; ///< Hypothesis flash object
+    double score;             ///< floating point representing the "goodness" (algorithm dependent), should be 0.0=>1.0
+    QPoint_t tpc_point;       ///< estimated & matched 3D flash hypothesis point from TPC information
+    QPoint_t tpc_point_err;   ///< error on the estimated point
+    TouchMatch_t touch_match; ///< see TouchMatch_t enum
+    double touch_score;       ///< score for touch match, should be 0.0=>1.0
+    QPoint_t touch_point;     ///< estimated & matched 3D point based on BaseTouchMatch inherited algorithm
+
+    // FIXME: attributes below are meant for a particular algorithm QLLMatch, not meant to be here for long... 
 	  unsigned int duration;  ///< Computation time of the match algorithm on this match (ns)
     unsigned int num_steps; ///< Number of MIGRAD steps
-    unsigned int touch_match; ///< 0 = not a touch match, 1 = touch match, 2 = touching both sides
-    double minimizer_min_x;
-    double minimizer_max_x;
-    std::vector<double> hypothesis;       ///< Hypothesis flash object
+    double minimizer_min_x; ///< the minimum X value MIGRAD tried out
+    double minimizer_max_x; ///< the maximum X value MIGRAD tried out
+
     /// Default ctor assigns invalid values
     FlashMatch_t() : hypothesis()
-    { tpc_id = kINVALID_ID; flash_id = kINVALID_ID; score = duration = -1;}
+    { tpc_id = kINVALID_ID; flash_id = kINVALID_ID; score = duration = touch_score = -1; touch_match=kNoTouchMatch;}
+
     /// Alternative ctor
     FlashMatch_t(const ID_t& tpc_id_value,
 		 const ID_t& flash_id_value,
-		 const double& score_value) : hypothesis()
-    { tpc_id = tpc_id_value; flash_id = flash_id_value; score = score_value; duration = -1;}
-#ifndef __CINT__ // hyde move from fucking CINT cuz it's fucked
-    /// Alternative ctor
-    FlashMatch_t(const ID_t& tpc_id_value,
-		 const ID_t& flash_id_value,
-		 const double& score_value,
-		 std::vector<double>&& hypo) : hypothesis(std::move(hypo))
-    { tpc_id = tpc_id_value; flash_id = flash_id_value; score = score_value; }
-#endif
+		 const double& score_value) : hypothesis(), score(score_value)
+    { tpc_id = tpc_id_value; flash_id = flash_id_value; touch_score = duration = -1; touch_match=kNoTouchMatch;}
+
   };
 
   /// Enum to define MC source type (MCTrack or MCShower) for a given QCluster

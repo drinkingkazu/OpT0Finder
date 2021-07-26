@@ -71,7 +71,7 @@ namespace flashmatch {
     }
 
     /// Core function: execute matching
-    FlashMatch_t Match(const QCluster_t&, const Flash_t&, const bool prohibit_touch_match=false);
+    void Match(const QCluster_t&, const Flash_t&, FlashMatch_t& match);
 
     const Flash_t& ChargeHypothesis(const double);
     const Flash_t& Measurement() const;
@@ -82,9 +82,9 @@ namespace flashmatch {
     void Record(const double x)
     {
       if(_record) {
-	_minimizer_record_chi2_v.push_back(_current_chi2);
-	_minimizer_record_llhd_v.push_back(_current_llhd);
-	_minimizer_record_x_v.push_back(x);
+      	_minimizer_record_chi2_v.push_back(_current_chi2);
+      	_minimizer_record_llhd_v.push_back(_current_llhd);
+      	_minimizer_record_x_v.push_back(x);
       }
     }
 
@@ -94,10 +94,8 @@ namespace flashmatch {
         if (x > _minimizer_max_x) _minimizer_max_x = x;
     }
 
-    double CallMinuit(const QCluster_t& tpc,
-		      const Flash_t& pmt,
-		      const bool init_x0=true);
-
+    double CallMinuit(const Flash_t& pmt, const bool init_x0=true);
+      
     const std::vector<double>& HistoryLLHD() const { return _minimizer_record_llhd_v; }
     const std::vector<double>& HistoryChi2() const { return _minimizer_record_chi2_v; }
     const std::vector<double>& HistoryX()    const { return _minimizer_record_x_v;    }
@@ -108,10 +106,10 @@ namespace flashmatch {
 
   private:
 
-      FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score, bool tpc0);
-    FlashMatch_t PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0, const bool prohibit_touch_match);
+    //FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score, bool tpc0);
+    void PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0, FlashMatch_t& match);
 
-    FlashMatch_t OnePMTMatch(const Flash_t &flash);
+    void OnePMTMatch(const Flash_t &flash,FlashMatch_t& match);
 
     static QLLMatch* _me;
 

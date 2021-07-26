@@ -104,7 +104,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
     np_result = None
     counter = 0
-    #entries = [36]
+    #entries = [14]
     for entry in entries:
         sys.stdout.write('Entry %d/%d\n' %(entry,len(entries)))
         sys.stdout.write('Event %d\n' % mgr.event_id(entry))
@@ -142,8 +142,8 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
             if not out_file:
                 print('Match ID',idx)
-                msg = '  TPC/PMT IDs %d/%d Correct? %s Touch match? %d Score %f Trunc. %f ... reco vs. true: X %f vs. (%f, %f), PE %f vs. %f, Time %f vs. %f'
-                msg = msg % (tpc.idx, pmt.idx, correct_match, match.touch_match, match.score, truncation, match.tpc_point.x, true_minx, true_maxx,
+                msg = '  TPC/PMT IDs %d/%d Correct? %s Touch match? %d F-Score %.3f T-Score %.3f Trunc. %.3f ... reco vs. true: X %.3f vs. (%f.3, %.3f), PE %f vs. %f, Time %f vs. %f'
+                msg = msg % (tpc.idx, pmt.idx, correct_match, match.touch_match, match.score, match.touch_score, truncation, match.tpc_point.x, true_minx, true_maxx,
                              np.sum(match.hypothesis), np.sum(pmt.pe_v), tpc.time_true, pmt.time_true)
                 print(msg)
                 continue
@@ -249,7 +249,7 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
             np_result=None
 
         counter += len(match_input.true_match)
-
+        #break
 
     print("counter ", counter)
     if not out_file:

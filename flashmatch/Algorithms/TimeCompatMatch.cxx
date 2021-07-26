@@ -15,7 +15,8 @@ namespace flashmatch {
 
   void TimeCompatMatch::_Configure_(const Config_t &pset)
   {
-    _time_buffer = pset.get<double>("TimeBuffer");
+    _time_shift  = pset.get<double>("BeamTimeShift",0);
+    _time_window = pset.get<double>("TouchingTrackWindow",5);
   }
 
   bool TimeCompatMatch::MatchCompatible(const QCluster_t& clus, const Flash_t& flash)
@@ -24,29 +25,40 @@ namespace flashmatch {
     if(clus.empty()) return false; 
 
     // get time of flash
-    auto flash_time = flash.time;
+    auto flash_time = flash.time - _time_shift;
 
     // get time of cluster by looking at the range of x-positions
-    // FIXME: 1036?
-    double clus_x_min =  1036.; // cm
-    double clus_x_max = -1036.;    // cm
+    double clus_x_min = kINVALID_DOUBLE;
+    double clus_x_max = -1 * kINVALID_DOUBLE;
     for (auto const& pt : clus){
       if (pt.x > clus_x_max) { clus_x_max = pt.x; }
       if (pt.x < clus_x_min) { clus_x_min = pt.x; }
     }
 
-    // Earliest flash time => assume clus_x_max is @ detector X-max boundary
+    // Detector boundary info
     double xmax = DetectorSpecs::GetME().ActiveVolume().Max()[0];
-    double clus_t_min = (clus_x_max - xmax) / DetectorSpecs::GetME().DriftVelocity();
-    double clus_t_max = clus_x_min / DetectorSpecs::GetME().DriftVelocity();
+    double xmin = DetectorSpecs::GetME().ActiveVolume().Min()[0];
 
-    /*
-    std::cout<< "Inspecting TPC object @ " << clus.time << std::endl;
-    std::cout<< "xmin = " << clus_x_min << " ... xmax = " << clus_x_max << std::endl;
-    std::cout<< "tmin = " << clus_t_min << " ... tmax = " << clus_t_max << std::endl;
-    std::cout<< "Flash time @ " << flash_time << std::endl;
-    */    
-    return ((clus_t_min - _time_buffer) < flash_time && flash_time < (clus_t_max + _time_buffer));
+    // Assume this is the right flash, check if a trajectory is within the active volume
+    // One assumes tpc0 and the other tpc1 
+    double reco_x_tpc0 = clus_x_min - flash_time * DetectorSpecs::GetME().DriftVelocity();
+    double reco_x_tpc1 = clus_x_max + flash_time * DetectorSpecs::GetME().DriftVelocity();
+
+    double distance_window = _time_window * DetectorSpecs::GetME().DriftVelocity();
+
+    bool incompatible_tpc0 = (xmin - reco_x_tpc0) > distance_window;
+    bool incompatible_tpc1 = (reco_x_tpc1 - xmax) > distance_window;
+
+    FLASH_INFO() << "Inspecting..." << std::endl
+      << "Detector X span : " << xmin << " => " << xmax << std::endl
+      << "TPC pts X span  : " << clus_x_min << " => " << clus_x_max << " ... " << clus.size() << " points" << std::endl
+      << "Flash time      : " << flash_time << " (shifted by " << _time_shift << ")" << std::endl
+      << "Hypothesis X pos: " << reco_x_tpc0 << " => " << reco_x_tpc1 << std::endl
+      << "From TPC-0 edge : " << (xmin - reco_x_tpc0) << " ... incompatible? " << incompatible_tpc0 << std::endl
+      << "From TPC-1 edge : " << (reco_x_tpc1 - xmax) << " ... incompatible? " << incompatible_tpc1 << std::endl;
+
+    if ( incompatible_tpc0 && incompatible_tpc1 ) return false;
+    return true;
 
   }
 

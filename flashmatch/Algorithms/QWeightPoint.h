@@ -53,7 +53,7 @@ namespace flashmatch {
     /// Default destructor
     ~QWeightPoint(){}
 
-    FlashMatch_t Match(const QCluster_t&, const Flash_t&, const bool prohibit_touch_match = false);
+    void Match(const QCluster_t&, const Flash_t&, FlashMatch_t& match);
 
   protected:
 

@@ -22,6 +22,9 @@
 #include "BaseProhibitAlgo.h"
 #include "BaseFlashMatch.h"
 #include "BaseFlashHypothesis.h"
+#include "BaseTouchMatch.h"
+#include "BaseMatchSelection.h"
+
 namespace flashmatch {
   /**
      \class FlashMatchManager
@@ -61,21 +64,20 @@ namespace flashmatch {
 
     /**
        CORE FUNCTION: executes algorithms to find a match of TPC object and flash provided by users. \n
-       The execution takes following steps:             \n
-       0) TPC filter algorithm if provided (optional)   \n
-       1) Flash filter algorithm if provided (optional) \n
-       3) Flash matching algorithm (required)           \n
-       4) Returns match information for created TPC object & flash pair which respects the outcome of 3)
+       The execution takes following steps:               \n
+       0) TPC filter algorithm (optional)                 \n
+       1) Flash filter algorithm (optional)               \n
+       2) Match prohibit algorithm (optional)             \n
+       3) Geometry-based touch-match algorithm (optional) \n
+       4) Flash matching algorithm (required)             \n
+       5) Match selection algorithm (required)            \n
+       4) Returns match information for created TPC object & flash pair 
      */
     std::vector<flashmatch::FlashMatch_t> Match();
 
     /// Clears locally kept TPC object (QClusterArray_t) and flash (FlashArray_t), both provided by a user
     void Reset()
     { _tpc_object_v.clear(); _flash_v.clear(); }
-
-    /// Configuration option: true => allows an assignment of the same flash to multiple TPC objects
-    void CanReuseFlash(bool ok=true)
-    { _allow_reuse_flash = ok; }
 
     void PrintConfig();
 
@@ -102,7 +104,8 @@ namespace flashmatch {
     BaseProhibitAlgo*    _alg_match_prohibit;   ///< Flash matchinig prohibit algorithm
     BaseFlashMatch*      _alg_flash_match;      ///< Flash matching algorithm
     BaseFlashHypothesis* _alg_flash_hypothesis; ///< Flash hypothesis algorithm
-
+    BaseTouchMatch*      _alg_touch_match;      ///< Flash matching using geometry
+    BaseMatchSelection*  _alg_match_select;     ///< Match selection algorithm
     /**
        A set of custom algorithms (not to be executed but to be configured)
     */
@@ -112,8 +115,6 @@ namespace flashmatch {
     QClusterArray_t _tpc_object_v;
     /// Flash object information collection (provided by a user)
     FlashArray_t _flash_v;
-    /// Configuration option to allow re-use of a flash (i.e. 1 flash can be assigned to multiple TPC object)
-    bool _allow_reuse_flash;
     /// Configuration readiness flag
     bool _configured;
     /// Configuration file

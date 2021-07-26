@@ -6,6 +6,44 @@
 
 namespace flashmatch {
 
+  void QCluster_t::max_x(flashmatch::QPoint_t& qpt) const 
+  {
+    double max_value = -kINVALID_DOUBLE;
+    for(auto const& p : (*this)) {
+      if(p.x < max_value) continue;
+      max_value = p.x;
+      qpt = p;      
+    }
+  }
+
+  void QCluster_t::max_x(geoalgo::Point_t& pt) const 
+  {
+    QPoint_t qpt;
+    this->max_x(qpt);
+    pt[0] = qpt.x;
+    pt[1] = qpt.y;
+    pt[2] = qpt.z;
+  }
+
+  void QCluster_t::min_x(flashmatch::QPoint_t& qpt) const 
+  {
+    double min_value = kINVALID_DOUBLE;
+    for(auto const& p : (*this)) {
+      if(p.x > min_value) continue;
+      min_value = p.x;
+      qpt = p;      
+    }
+  }
+
+  void QCluster_t::min_x(geoalgo::Point_t& pt) const 
+  {
+    QPoint_t qpt;
+    this->min_x(qpt);
+    pt[0] = qpt.x;
+    pt[1] = qpt.y;
+    pt[2] = qpt.z;
+  }
+
   double QCluster_t::sum() const
   { double sum=0; for(auto const& pt : (*this)) sum += pt.q; return sum; }
 

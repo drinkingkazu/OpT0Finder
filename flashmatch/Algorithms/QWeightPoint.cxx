@@ -22,17 +22,16 @@ namespace flashmatch {
     _zdiff_max *= _zdiff_max;
   }
 
-  FlashMatch_t QWeightPoint::Match(const QCluster_t& pt_v, const Flash_t& flash, const bool prohibit_touch_match)
+  void QWeightPoint::Match(const QCluster_t& pt_v, const Flash_t& flash, FlashMatch_t& match)
   {
 
     if(_vis_array.pe_v.empty())
       _vis_array.pe_v.resize(DetectorSpecs::GetME().NOpDets());
 
     // Prepare the return values (Mostly QWeightPoint)
-    FlashMatch_t f;
     if(pt_v.empty()){
       std::cout<<"Not enough points!"<<std::endl;
-      return f;
+      return;
     }
 
     _tpc_qcluster.resize(pt_v.size());
@@ -77,39 +76,38 @@ namespace flashmatch {
 
 	min_dz = dz;
 
-	f.score = 1./min_dz;
-	f.tpc_point.x = f.tpc_point.y = 0;
-	f.tpc_point.q = vis_pe_sum;
+	match.score = 1./min_dz;
+	match.tpc_point.x = match.tpc_point.y = 0;
+	match.tpc_point.q = vis_pe_sum;
 
-	f.tpc_point.x = x_offset;
+	match.tpc_point.x = x_offset;
 
 	for(size_t pmt_index=0; pmt_index<DetectorSpecs::GetME().NOpDets(); ++pmt_index) {
 	  if(_vis_array.pe_v[pmt_index]<0) continue;
-	  f.tpc_point.y += DetectorSpecs::GetME().PMTPosition(pmt_index)[1] * _vis_array.pe_v[pmt_index] / vis_pe_sum;
+	  match.tpc_point.y += DetectorSpecs::GetME().PMTPosition(pmt_index)[1] * _vis_array.pe_v[pmt_index] / vis_pe_sum;
 	}
 
-	f.tpc_point.z = weighted_z;
+	match.tpc_point.z = weighted_z;
       }
     }
 
-    f.hypothesis.clear();
+    match.hypothesis.clear();
 
     FLASH_INFO() << "Best match Hypothesis: "
-		 << f.tpc_point.x << " : "
-		 << f.tpc_point.y << " : "
-		 << f.tpc_point.z << " ... min dist : " << min_dz
+		 << match.tpc_point.x << " : "
+		 << match.tpc_point.y << " : "
+		 << match.tpc_point.z << " ... min dist : " << min_dz
 		 << std::endl;
 
     // If min-diff is bigger than assigned max, return default match (score<0)
     if( min_dz > _zdiff_max ) {
-      f.tpc_point.x = f.tpc_point.y = f.tpc_point.z = -1;
-      f.tpc_point.q = -1;
-      f.score = -1;
-      return f;
+      match.tpc_point.x = match.tpc_point.y = match.tpc_point.z = -1;
+      match.tpc_point.q = -1;
+      match.score = -1;
+      return;
     }
 
-    f.hypothesis = _vis_array.pe_v;
-    return f;
+    match.hypothesis = _vis_array.pe_v;
 
   }
 
