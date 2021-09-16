@@ -52,9 +52,11 @@ namespace flashmatch {
 
     void BuildHypothesis(const QCluster_t& trk, Flash_t &flash) const;
 
-    bool InspectTouchingEdges(const QCluster_t&, size_t&, size_t&) const;
+    int InspectTouchingEdges(const QCluster_t&) const;
 
-    QCluster_t TrackExtension(const QCluster_t&, const size_t, const size_t) const;
+    QCluster_t TrackExtension(const QCluster_t&, const int touch) const;
+
+    QCluster_t ComputeExtension(const geoalgo::Vector& A, const geoalgo::Vector& B) const;
 
     void TrackExtension(const QCluster_t&, Flash_t&) const;
 
@@ -69,7 +71,8 @@ namespace flashmatch {
     double _reco_pe_calib;         ///< A global calibration factor for reconstructed PE 
     double _segment_size;
     bool _extend_tracks;
-    double _threshold_extend_track;
+    double _threshold_proximity;
+    double _threshold_track_len;
   };
 
   /**

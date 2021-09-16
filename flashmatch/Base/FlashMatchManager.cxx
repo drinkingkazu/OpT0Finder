@@ -290,7 +290,6 @@ namespace flashmatch {
           FLASH_CRITICAL() << "Flash ID changed by FlashMatch algorithm. Not supposed to happen..." << std::endl;
           throw OpT0FinderException();
         }
-
         auto start = std::chrono::high_resolution_clock::now();
         _alg_flash_match->Match( tpc, flash, match ); // Run matching
         auto end = std::chrono::high_resolution_clock::now();

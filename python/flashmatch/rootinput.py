@@ -201,6 +201,7 @@ class ROOTInput:
                 flash.pe_v[pmt] = pe_reco_v[pmt]
                 flash.pe_err_v[pmt] = 0.
                 flash.time = f['time']
+                flash.time_width = f['time_width']
                 flash.pe_true_v[pmt] = pe_true_v[pmt]
                 flash.time_true = f['time_true']
             if np.sum(flash.pe_v) > 0:

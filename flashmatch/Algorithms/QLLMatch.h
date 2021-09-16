@@ -85,6 +85,7 @@ namespace flashmatch {
       	_minimizer_record_chi2_v.push_back(_current_chi2);
       	_minimizer_record_llhd_v.push_back(_current_llhd);
       	_minimizer_record_x_v.push_back(x);
+        _minimizer_record_pe_v.push_back(_current_pe);
       }
     }
 
@@ -94,11 +95,14 @@ namespace flashmatch {
         if (x > _minimizer_max_x) _minimizer_max_x = x;
     }
 
-    double CallMinuit(const Flash_t& pmt, const bool init_x0=true);
+    double CallMinuit(const Flash_t& pmt, const double x0);
       
     const std::vector<double>& HistoryLLHD() const { return _minimizer_record_llhd_v; }
     const std::vector<double>& HistoryChi2() const { return _minimizer_record_chi2_v; }
     const std::vector<double>& HistoryX()    const { return _minimizer_record_x_v;    }
+    const std::vector<double>& HistoryPE()   const { return _minimizer_record_pe_v;   }
+
+    void DumpHistory() const;
 
   protected:
 
@@ -107,8 +111,8 @@ namespace flashmatch {
   private:
 
     //FlashMatch_t TouchingTrack(const QCluster_t &pt_v, const Flash_t & flash, double score, bool tpc0);
-    void PESpectrumMatch(const QCluster_t &pt_v, const Flash_t &flash, const bool init_x0, FlashMatch_t& match);
-
+    void PESpectrumMatch(const Flash_t &flash, const double x0, FlashMatch_t& match);
+    std::vector<double> CalculateX0(const Flash_t &pmt);
     void OnePMTMatch(const Flash_t &flash,FlashMatch_t& match);
 
     static QLLMatch* _me;
@@ -131,11 +135,13 @@ namespace flashmatch {
     flashmatch::Flash_t    _hypothesis;  ///< Hypothesis PE distribution over PMTs
     flashmatch::Flash_t    _measurement; ///< Flash PE distribution over PMTs
 
+    double _current_pe;
     double _current_chi2;
     double _current_llhd;
     std::vector<double> _minimizer_record_chi2_v; ///< Minimizer record chi2 value
     std::vector<double> _minimizer_record_llhd_v; ///< Minimizer record llhd value
     std::vector<double> _minimizer_record_x_v;    ///< Minimizer record X values
+    std::vector<double> _minimizer_record_pe_v;   ///< Minimizer record PE values
     double _minimizer_min_x;
     double _minimizer_max_x;
 
@@ -143,10 +149,11 @@ namespace flashmatch {
     double _reco_x_offset_err; ///< reconstructed X offset w/ error
     double _qll;               ///< Minimizer return value
 
+    double _minuit_x_buffer; ///< a buffer along x (drift) direction for the range in which minuit runs
+
     TF2 _poisson;
 
     bool _converged;
-
     TMinuit* _minuit_ptr;
     double _migrad_tolerance;
     int _num_steps;
@@ -163,6 +170,7 @@ namespace flashmatch {
 
     double _vol_xmax, _vol_xmin;
     std::vector<double> _xpos_v, _ypos_v, _zpos_v;
+    std::vector<double> _exp_frac_v, _exp_tau_v;
   };
 
   /**

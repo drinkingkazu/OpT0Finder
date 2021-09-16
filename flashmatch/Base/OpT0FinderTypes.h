@@ -44,6 +44,7 @@ namespace flashmatch {
     double x_err,y_err,z_err; ///< Flash position error
     double time;              ///< Flash timing, a candidate T0
     double time_true;         ///< MCFlash timing (if it was matched to a MCFlash)
+    double time_width;        ///< Flash time integration window
     double dt_next, dt_prev;
     ID_t idx;                 ///< index from original larlite vector
     //ID_t ROOT_idx;            ///< index in root file
@@ -53,6 +54,7 @@ namespace flashmatch {
       x_err = y_err = z_err = kINVALID_DOUBLE;
       time = kINVALID_DOUBLE;
       time_true = kINVALID_DOUBLE;
+      time_width = kINVALID_DOUBLE;
       dt_next = kINVALID_DOUBLE;
       dt_prev = kINVALID_DOUBLE;
       idx = kINVALID_ID;
@@ -117,7 +119,7 @@ namespace flashmatch {
       , q(qvalue)
     {}
     /// distance
-    inline double dist(const QPoint_t& pt)
+    inline double dist(const QPoint_t& pt) const
     { return sqrt(pow(pt.x-x,2)+pow(pt.y-y,2)+pow(pt.z-z,2)); }
   };
 
@@ -228,14 +230,9 @@ namespace flashmatch {
     double minimizer_max_x; ///< the maximum X value MIGRAD tried out
 
     /// Default ctor assigns invalid values
-    FlashMatch_t() : hypothesis()
-    { tpc_id = kINVALID_ID; flash_id = kINVALID_ID; score = duration = touch_score = -1; touch_match=kNoTouchMatch;}
-
-    /// Alternative ctor
-    FlashMatch_t(const ID_t& tpc_id_value,
-		 const ID_t& flash_id_value,
-		 const double& score_value) : hypothesis(), score(score_value)
-    { tpc_id = tpc_id_value; flash_id = flash_id_value; touch_score = duration = -1; touch_match=kNoTouchMatch;}
+    FlashMatch_t() : tpc_id(kINVALID_ID), flash_id(kINVALID_ID), hypothesis(),
+    score(-1), touch_match(kNoTouchMatch), touch_score(-1), duration(0)
+    {}
 
   };
 

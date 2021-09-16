@@ -70,8 +70,8 @@ namespace phot{
   PhotonVisibilityService::PhotonVisibilityService(std::string library) :
     fCurrentVoxel(0),
     fCurrentValue(0.),
-    fXmin( -405.0 ),
-    fXmax(  -35.0 ),
+    fXmin( -395.0 ),
+    fXmax(  -25.0 ),
     fYmin( -215.0 ),
     fYmax(  170.0 ),
     fZmin( -985.0 ),

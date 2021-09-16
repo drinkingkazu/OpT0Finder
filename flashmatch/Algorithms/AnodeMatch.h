@@ -53,7 +53,7 @@ namespace flashmatch {
 
   private:
     double _time_window; ///< maximum time-diff from the hypothesized timing from TPC to flash
-    double _space_range_squared; ///< spatial extent from the edge TPC track to inspect PMTs to see if they see enough PE to claim a match.
+    double _space_range; ///< spatial extent from the edge TPC track to inspect PMTs to see if they see enough PE to claim a match.
     double _pe_threshold; ///< minimum PE required for a PMT that is within the range of _space_range_squared from the track edge points. 
   };
 

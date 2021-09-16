@@ -17,8 +17,7 @@ namespace flashmatch {
   {
     _time_window  = pset.get<double>("TimeWindow");
     _pe_threshold = pset.get<double>("PEThreshold",-1);
-    auto space_range  = pset.get<double>("DistanceToPMTs",50);
-    _space_range_squared = space_range * space_range;
+    _space_range  = pset.get<double>("DistanceToPMTs",50);
   }
 
   void AnodeMatch::Match(const QCluster_t& pt_v, const Flash_t& flash, FlashMatch_t& match)
@@ -58,36 +57,56 @@ namespace flashmatch {
     bool touching_tpc0 = false;
     double touching_dist0 = kINVALID_DOUBLE;
     if(time_proximity_tpc0 < _time_window) {
+      FLASH_INFO() << "Time compatible with TPC 0..." << std::endl;
       // time is compatible. next, check the PE amount in the nearby PMT
       ::geoalgo::Point_t tpc_pt(detector_xmin, qpt_min.y, qpt_min.z);
+      double hist_min_dist = kINVALID_DOUBLE;
+      double hist_pe = -1;
+      int hist_closest_pmt = -1;
       for(size_t i=0; i<DetectorSpecs::GetME().NOpDets(); ++i) {
         auto const& pmt_pos = DetectorSpecs::GetME().PMTPosition(i);
-        double squared_dist = tpc_pt.SqDist(pmt_pos);
-        if(squared_dist > _space_range_squared) continue;
+        double dist = tpc_pt.Dist(pmt_pos);
+        if(dist < hist_min_dist) {
+          hist_min_dist = dist;
+          hist_pe = flash.pe_v[i];
+          hist_closest_pmt = i;
+        }
+        if(dist > _space_range) continue;
         if(flash.pe_v[i] < _pe_threshold) continue;
         // PMT hit is found that is consistent with a touch match
         touching_tpc0 = true;
-        touching_dist0 = std::min(squared_dist,touching_dist0);
-        FLASH_INFO() << "TPC 0 PMT " << i << " dist " << sqrt(squared_dist) << " ... " << flash.pe_v[i] << " PE" <<std::endl;
+        touching_dist0 = std::min(dist,touching_dist0);
+        FLASH_INFO() << "TOUCH FOUND ... TPC 0 PMT " << i << " dist " << sqrt(dist) << " ... " << flash.pe_v[i] << " PE" <<std::endl;
       }
+      FLASH_INFO() << "... in TPC 0, closest PMT " << hist_closest_pmt << " dist. " << hist_min_dist << " PE " << hist_pe << std::endl;
     }
 
     // Check TPC1 boundary
     bool touching_tpc1 = false;
     double touching_dist1 = kINVALID_DOUBLE;
     if(time_proximity_tpc1 < _time_window) {
+      FLASH_INFO() << "Time compatible with TPC 1..." << std::endl;
       // time is compatible. next, check the PE amount in the nearby PMT
       ::geoalgo::Point_t tpc_pt(detector_xmax, qpt_max.y, qpt_max.z);
+      double hist_min_dist = kINVALID_DOUBLE;
+      double hist_pe = -1;
+      int hist_closest_pmt = -1;
       for(size_t i=0; i<DetectorSpecs::GetME().NOpDets(); ++i) {
         auto const& pmt_pos = DetectorSpecs::GetME().PMTPosition(i);
-        double squared_dist = tpc_pt.SqDist(pmt_pos);
-        if(squared_dist > _space_range_squared) continue;
+        double dist = tpc_pt.Dist(pmt_pos);
+        if(dist < hist_min_dist) {
+          hist_min_dist = dist;
+          hist_pe = flash.pe_v[i];
+          hist_closest_pmt = i;
+        }
+        if(dist > _space_range) continue;
         if(flash.pe_v[i] < _pe_threshold) continue;
         // PMT hit is found that is consistent with a touch match
         touching_tpc1 = true;
-        touching_dist1 = std::min(squared_dist,touching_dist1);
-        FLASH_INFO() << "TPC 1 PMT " << i << " dist " << sqrt(squared_dist) << " ... " << flash.pe_v[i] << " PE" <<std::endl;
+        touching_dist1 = std::min(dist,touching_dist1);
+        FLASH_INFO() << "TOUCH FOUND ... TPC 1 PMT " << i << " dist " << sqrt(dist) << " ... " << flash.pe_v[i] << " PE" <<std::endl;
       }
+      FLASH_INFO() << "... in TPC 1, closest PMT " << hist_closest_pmt << " dist. " << hist_min_dist << " PE " << hist_pe << std::endl;
     }
 
     if(touching_tpc0 || touching_tpc1) {

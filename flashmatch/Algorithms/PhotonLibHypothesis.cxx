@@ -10,7 +10,7 @@
 
 #if USING_LARSOFT == 0
 #include <omp.h>
-#define NUM_THREADS 12
+#define NUM_THREADS 1
 #endif
 
 //using namespace std::chrono;
@@ -34,7 +34,18 @@ namespace flashmatch {
         _global_qe_refl = pset.get<double>("GlobalQERefl", -1);
         _reco_pe_calib = pset.get<double>("RecoPECalibFactor",1.0);
         _extend_tracks = pset.get<bool>("ExtendTracks", false);
-        _threshold_extend_track = pset.get<double>("ThresholdExtendTrack", 5.0);
+        /*
+        if(_extend_tracks) {
+            FLASH_CRITICAL() << "ExtendTracks currently has a problem and cannot be enabled!" << std::endl
+            << "If you would like to debug, here is useful info..." << std::endl
+            << "1. InspectTouchingEdges function checks if a track is touching either of 2 PMT planes (within 1 cryostat)" << std::endl
+            << "2. But TrackExtension function only extends to the negative x direction (and it does so disregard of the fact if that end is touching or not)" << std::endl
+            << "This is completely wrong (a bug). Hence we disabled at the moment. TrackExtension may not be critical for flash matching performance" <<std::endl;
+            throw OpT0FinderException();
+        } 
+        */
+        _threshold_proximity = pset.get<double>("ExtensionProximityThreshold", 5.0);
+        _threshold_track_len = pset.get<double>("ExtensionTrackLengthMaxThreshold", 20.0);
         _segment_size = pset.get<double>("SegmentSize", 0.5);
 
         _qe_v.clear();
@@ -45,10 +56,39 @@ namespace flashmatch {
           << " != number of opdet (" << DetectorSpecs::GetME().NOpDets() << ")!" << std::endl;
           throw OpT0FinderException();
         }
+
     }
 
-    bool PhotonLibHypothesis::InspectTouchingEdges(const QCluster_t& trk, size_t& min_idx, size_t& max_idx) const
+    int PhotonLibHypothesis::InspectTouchingEdges(const QCluster_t& trk) const
     {
+        // Return code: 0=no touch, 1=start touching, 2=end touching, 3= both touching
+        int result = 0;
+
+        // Check if the start/end is near the edge
+        auto const& start = trk.front();
+        auto const& end   = trk.back();
+        if (((start.x - DetectorSpecs::GetME().ActiveVolume().Min()[0]) < _threshold_proximity) ||
+            ((start.y - DetectorSpecs::GetME().ActiveVolume().Min()[1]) < _threshold_proximity) ||
+            ((start.z - DetectorSpecs::GetME().ActiveVolume().Min()[2]) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[0] - start.x) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[1] - start.y) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[2] - start.z) < _threshold_proximity)) {
+                //std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
+                //std::cout << trk.front().x << " " << trk.back().x << std::endl;
+            result += 1;
+        }
+        if (((end.x - DetectorSpecs::GetME().ActiveVolume().Min()[0]) < _threshold_proximity) ||
+            ((end.y - DetectorSpecs::GetME().ActiveVolume().Min()[1]) < _threshold_proximity) ||
+            ((end.z - DetectorSpecs::GetME().ActiveVolume().Min()[2]) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[0] - end.x) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[1] - end.y) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[2] - end.z) < _threshold_proximity)) {
+                //std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
+                //std::cout << trk.front().x << " " << trk.back().x << std::endl;
+            result += 2;
+        }
+        /*
+        // OLD CODE looking at ANY POINT close to the edge
         double min_x = kINVALID_DOUBLE; double max_x = -kINVALID_DOUBLE;
         min_idx = max_idx = 0;
         for (size_t pt_index = 0; pt_index < trk.size(); ++pt_index) {
@@ -60,22 +100,98 @@ namespace flashmatch {
                 max_x = trk[pt_index].x;
                 max_idx = pt_index;
             }
-        } 
-        if (((trk[min_idx].x - DetectorSpecs::GetME().ActiveVolume().Min()[0]) < _threshold_extend_track) ||
-            ((trk[min_idx].y - DetectorSpecs::GetME().ActiveVolume().Min()[1]) < _threshold_extend_track) ||
-            ((trk[min_idx].z - DetectorSpecs::GetME().ActiveVolume().Min()[2]) < _threshold_extend_track) ||
-            ((DetectorSpecs::GetME().ActiveVolume().Max()[0] - trk[max_idx].x) < _threshold_extend_track) ||
-            ((DetectorSpecs::GetME().ActiveVolume().Max()[1] - trk[max_idx].y) < _threshold_extend_track) ||
-            ((DetectorSpecs::GetME().ActiveVolume().Max()[2] - trk[max_idx].z) < _threshold_extend_track)) {
+        }
+        if (((trk[min_idx].x - DetectorSpecs::GetME().ActiveVolume().Min()[0]) < _threshold_proximity) ||
+            ((trk[min_idx].y - DetectorSpecs::GetME().ActiveVolume().Min()[1]) < _threshold_proximity) ||
+            ((trk[min_idx].z - DetectorSpecs::GetME().ActiveVolume().Min()[2]) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[0] - trk[max_idx].x) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[1] - trk[max_idx].y) < _threshold_proximity) ||
+            ((DetectorSpecs::GetME().ActiveVolume().Max()[2] - trk[max_idx].z) < _threshold_proximity)) {
                 //std::cout << "*** Extending track " << trk.size() << " " << min_x << " " << max_x << std::endl;
                 //std::cout << trk.front().x << " " << trk.back().x << std::endl;
             return true;
         }
-        return false;
+        */
+        return result;
+
     }
 
-    QCluster_t PhotonLibHypothesis::TrackExtension(const QCluster_t& in_trk, const size_t min_idx, const size_t max_idx) const
+    QCluster_t PhotonLibHypothesis::ComputeExtension(const geoalgo::Vector& A, const geoalgo::Vector& B) const 
     {
+        QCluster_t extension;
+
+        // direction to extend should be A=>B ... so B should be closer to the edge
+        geoalgo::Vector pt = B;
+        geoalgo::Vector AB = B - A;
+        auto length = AB.Length();
+        if(length < 1.e-9) {
+            FLASH_WARNING() << "Extension calculation halted as the direction estimate is unreliable for a short segment (" 
+            << length << " cm)" << std::endl;
+            return extension;
+        }
+        AB.Normalize();
+        const auto& box0 = DetectorSpecs::GetME().PhotonLibraryVolume();
+        const auto& box1 = DetectorSpecs::GetME().ActiveVolume();
+
+        double dist_inside = 0;
+        extension.reserve(100);
+        pt += (AB * _segment_size/2.);
+        while(box0.Contain(pt) && dist_inside < _threshold_proximity) {
+          if(!box1.Contain(pt)) {
+            QPoint_t qpt;
+            qpt.x = pt[0];
+            qpt.y = pt[1];
+            qpt.z = pt[2];
+            //std::cout << qpt.x << " " << qpt.y << " " << qpt.z << std::endl;
+            qpt.q = _segment_size * DetectorSpecs::GetME().LightYield() * DetectorSpecs::GetME().MIPdEdx();
+            extension.emplace_back(qpt);
+          }
+          else{ dist_inside += _segment_size; }
+
+          pt += (AB * _segment_size);
+        }
+
+        return extension;
+    }
+
+    QCluster_t PhotonLibHypothesis::TrackExtension(const QCluster_t& in_trk, const int touch) const
+    {
+        auto start_touch = bool(touch & 0x1);
+        auto end_touch   = bool(touch & 0x2);
+
+        QCluster_t trk;
+        if(start_touch) {
+            geoalgo::Vector B(in_trk[0].x, in_trk[0].y, in_trk[0].z);
+            geoalgo::Vector A(3);
+            // search for a canddiate point to define a direction (and avoid using the same point)
+            for(size_t i=1; i<in_trk.size(); ++i) {
+                A[0] = in_trk[i].x;
+                A[1] = in_trk[i].y;
+                A[2] = in_trk[i].z;
+                if(A.Dist(B) > _segment_size) break;
+            }
+            trk = this->ComputeExtension(A,B);
+        }
+        trk.reserve(trk.size() + in_trk.size());
+        for(auto const& pt : in_trk) trk.push_back(pt);
+        if(end_touch) {
+            geoalgo::Vector B(in_trk[in_trk.size()-1].x, in_trk[in_trk.size()-1].y, in_trk[in_trk.size()-1].z);
+            geoalgo::Vector A = B;
+            // search for a canddiate point to define a direction (and avoid using the same point)
+            for(int i=in_trk.size()-2; i>=0; --i) {
+                A[0] = in_trk[i].x;
+                A[1] = in_trk[i].y;
+                A[2] = in_trk[i].z;
+                if(A.Dist(B) > _segment_size) break;
+            }
+            auto end_trk = this->ComputeExtension(A,B);
+            trk.reserve(trk.size()+end_trk.size());
+            for(auto const& pt : end_trk)
+                trk.push_back(pt);
+        }
+
+        /*
+
         QCluster_t trk = in_trk;
         // Extend the track
         // Compute coordinates of final point first
@@ -113,7 +229,7 @@ namespace flashmatch {
         }
         //std::cout << " done " << trk.size() << std::endl;
         //std::cout << trk.front().x << " " << trk.back().x << std::endl;
-
+        */
         return trk;
     }
 
@@ -133,13 +249,18 @@ namespace flashmatch {
         for (auto& v : flash.pe_err_v  ) {v = 0;}
         for (auto& v : flash.pe_true_v ) {v = 0;}
 
-        size_t min_idx, max_idx;
-        bool extend_tracks = (_extend_tracks && this->InspectTouchingEdges(tpc_trk,min_idx,max_idx));
+        double track_length = tpc_trk.front().dist(tpc_trk.back());
+        int touch = this->InspectTouchingEdges(tpc_trk);
+        bool extend_tracks = (_extend_tracks && touch && track_length < _threshold_track_len);
+        if(_extend_tracks) {
+            FLASH_DEBUG() << "Extend? " << extend_tracks << " ... track length " << track_length << " touch-or-not " << touch << std::endl;
+        }
+
 
         if(!extend_tracks) 
             this->BuildHypothesis(tpc_trk,flash);
         else {
-            auto trk = this->TrackExtension(tpc_trk,min_idx,max_idx);
+            auto trk = this->TrackExtension(tpc_trk,touch);
             this->BuildHypothesis(trk,flash);
         }
 
@@ -147,7 +268,9 @@ namespace flashmatch {
 
     void PhotonLibHypothesis::BuildHypothesis(const QCluster_t& trk, Flash_t &flash) const
     {
-
+        //bool speak=false;
+        //std::cout<<trk[0].x<<" "<<trk[0].y<<" "<<trk[0].z<<std::endl;
+        //if(std::fabs(trk[0].x + 211.635)<1.0) speak=true;
         size_t n_pmt = DetectorSpecs::GetME().NOpDets();
 	#if USING_LARSOFT == 0
         #pragma omp parallel
@@ -197,13 +320,16 @@ namespace flashmatch {
 		#endif
 
                 nproc1 += 1; // for debug cout
+                double qsum = 0.;
+                double vsum = 0.;
                 for(size_t ipmt=0; ipmt < n_pmt; ++ipmt) {
 
                     if(_channel_mask[ipmt]) continue;
 
                     if(!_uncoated_pmt_list[ipmt])
 		      local_pe_v[ipmt] += pt.q * lib_data[ipmt];
-
+            qsum += pt.q * lib_data[ipmt];
+            vsum += lib_data[ipmt];
 		    #if USING_LARSOFT == 1
 		    if(_global_qe_refl > 0.)
 		      local_pe_refl_v[ipmt] += pt.q * lib_data_refl[ipmt];
@@ -211,6 +337,7 @@ namespace flashmatch {
                     //local_pe_v[ipmt] += pt.q * vis_pmt[ipmt];
                     //std::cout << "PMT : " << ipmt << " [x,y,z] -> [q] : [" << pt.x << ", " << pt.y << ", " << pt.z << "] -> [" << q0 << "," << q1 << "]" << std::endl;
                 }
+                //if(speak) std::cout << pt.x << " " << pt.y << " " << pt.z << " ... " << pt.q << ", " << qsum << ", " << vsum << std::endl;
             }
 
             #if USING_LARSOFT == 0
@@ -230,6 +357,7 @@ namespace flashmatch {
                 //double qsum2 = 0.;
                 //for(auto const& v: flash.pe_v) qsum2 += v;
                 //std::cout<<"Thread ID " << thread_id << " ... " << start_pt << " => " << start_pt+num_pts << " ... " << nproc0 << "/" << nproc1 << " qsum " << qsum << " total sum " << qsum2 << std::endl<<std::flush;
+                //std::cout<<qsum<<std::endl;
             }
 
         }

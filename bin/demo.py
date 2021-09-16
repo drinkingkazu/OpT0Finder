@@ -142,11 +142,13 @@ def demo(cfg_file,repeat=1,num_tracks=None,out_file='',particleana=None,opflasha
 
             if not out_file:
                 print('Match ID',idx)
-                msg = '  TPC/PMT IDs %d/%d Correct? %s Touch match? %d F-Score %.3f T-Score %.3f Trunc. %.3f ... reco vs. true: X %.3f vs. (%f.3, %.3f), PE %f vs. %f, Time %f vs. %f'
+
+                msg = '  TPC/PMT IDs %d/%d Correct? %s Touch match? %d F-Score %.3f T-Score %.3f Trunc. %.3f ... reco vs. true: X %.3f vs. (%.3f, %.3f), PE %f vs. %f, Time %f vs. %f'
                 msg = msg % (tpc.idx, pmt.idx, correct_match, match.touch_match, match.score, match.touch_score, truncation, match.tpc_point.x, true_minx, true_maxx,
                              np.sum(match.hypothesis), np.sum(pmt.pe_v), tpc.time_true, pmt.time_true)
                 print(msg)
                 continue
+            #print(match.hypothesis)
             store = np.array([[
                 mgr.event_id(entry),
                 entry,
@@ -276,11 +278,18 @@ if __name__ == '__main__':
             particleana = sys.argv[1]
             opflashana = sys.argv[2]
             if len(sys.argv) > 3:
-                outfile = sys.argv[3]
-            if len(sys.argv) > 4:
-                start_entry = int(sys.argv[4])
-            if len(sys.argv) > 5:
-                num_entries = int(sys.argv[5])
+                for v in sys.argv[3:]:
+                    if v.startswith('out='):
+                        outfile = v.replace('out=','')
+                    if v.startswith('start='):
+                        start_entry = int(v.replace('start=',''))
+                    if v.startswith('num='):
+                        num_entries = int(v.replace('num=',''))
+                    if v.startswith('end='):
+                        num_entries = int(v.replace('end=','')) - start_entry + 1
+                        if num_entries <= 0:
+                            print('start=%d and end =%d cannot run' % (start_entry,int(v.replace('end=',''))))
+                            sys.exit(1)
 
         # for argv in sys.argv[1:]:
         #     if argv.isdigit():
