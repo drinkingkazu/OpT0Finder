@@ -7,6 +7,10 @@
 #include <string>
 #include <cmath>
 
+#ifndef USING_LARSOFT
+#define USING_LARSOFT 1
+#endif
+
 #if USING_LARSOFT == 0
 #include "flashmatch/GeoAlgo/GeoVector.h"
 #else
