@@ -8,9 +8,22 @@ namespace flashmatch{
   DetectorSpecs* DetectorSpecs::_me = nullptr;
 }
 
+namespace flashmatch{
+
+  void DetectorSpecs::DumpInfo() const {
+    FLASH_NORMAL() << "Information dump..." << std::endl << std::endl 
+    << "  Active    volume : " << _bbox << std::endl << std::endl 
+    << "  PhotonLib volume : " << _photon_bbox << std::endl << std::endl 
+    << "  Drift velocity   : " << DriftVelocity() << std::endl 
+    << "  LightYield       : " << LightYield() << std::endl 
+    << "  MIP dE/dX        : " << _MIPdEdx << std::endl 
+    << "  PMT count        : " << _pmt_v.size() << std::endl << std::endl << std::flush;
+  }
+
+
+}
+
 #if USING_LARSOFT == 0
-#include "flashmatch/Base/FMWKTools/PSetUtils.h"
-#include "flashmatch/Base/FMWKTools/PhotonVisibilityService.h"
 namespace flashmatch{
 
   DetectorSpecs::DetectorSpecs(std::string filename) 
@@ -105,38 +118,53 @@ namespace flashmatch{
     return phot::PhotonVisibilityService::GetME().GetVoxelDef();
   }
 
-
 }
 
 #else
 
 namespace flashmatch{
   DetectorSpecs::DetectorSpecs(std::string filename){
-    ::art::ServiceHandle<geo::Geometry> const geo;
     auto const clock_data = ::art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
     auto const det_prop = ::art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob(clock_data);
 
     _drift_velocity = det_prop.DriftVelocity();
+
+    std::vector<size_t> cryo_id_v;
+    this->EnableCryostats(cryo_id_v);
+  }
+
+  void DetectorSpecs::EnableCryostats(std::vector<size_t> cryo_id_v)
+  {
+
+    ::art::ServiceHandle<geo::Geometry> const geo;
     _pmt_v.clear();
-
     _pmt_v.reserve(geo->NOpDets());
-
-    for (size_t opdet = 0; opdet < geo->NOpDets(); opdet++) {
-
-      std::vector<double> pos(3, 0.);
-      geo->OpDetGeoFromOpDet(opdet).GetCenter(&pos[0]);
-
-      geoalgo::Point_t pmt(pos);
-      _pmt_v.push_back(pmt);
-    }
 
     double global_x_min = 1e9, global_x_max = -1e9;
     double global_y_min = 1e9, global_y_max = -1e9;
     double global_z_min = 1e9, global_z_max = -1e9;
 
-    for (size_t cryo = 0; cryo < geo->Ncryostats(); cryo++) {
-      for (size_t tpc = 0; tpc < geo->NTPC(cryo); tpc++) {
-        const geo::TPCGeo tpc_geo = geo->TPC(tpc, cryo);
+    if(cryo_id_v.empty())
+      for(size_t i=0; i<geo->Ncryostats(); ++i) cryo_id_v.push_back(i);
+
+    for (auto const& cryo_id : cryo_id_v) {
+
+      auto const& cryo_geo = geo->Cryostat(cryo_id);
+
+      _pmt_v.reserve(_pmt_v.size()+cryo_geo.NOpDet());
+    
+      for (size_t opdet = 0; opdet < cryo_geo.NOpDet(); opdet++) {
+
+        std::vector<double> pos(3, 0.);
+        cryo_geo.OpDet(opdet).GetCenter(&pos[0]);
+
+        geoalgo::Point_t pmt(pos);
+        _pmt_v.push_back(pmt);
+      }
+
+
+      for (size_t tpc = 0; tpc < cryo_geo.NTPC(); tpc++) {
+        auto const& tpc_geo = cryo_geo.TPC(tpc_id);
         double x_min = tpc_geo.GetCenter().X() - tpc_geo.HalfWidth();
         double x_max = tpc_geo.GetCenter().X() + tpc_geo.HalfWidth();
 
@@ -156,12 +184,15 @@ namespace flashmatch{
         auto pair = std::pair<int,int>(tpc, cryo);
         _bbox_map[pair] = geoalgo::AABox(x_min, y_min, z_min, x_max, y_max, z_max);
       }
-
-      _bbox = geoalgo::AABox(global_x_min, global_y_min, global_z_min,
-                             global_x_max, global_y_max, global_z_max);
     }
 
-    // art::ServiceHandle<phot::PhotonVisibilityService const> pvs;
+    _bbox = geoalgo::AABox(global_x_min, global_y_min, global_z_min,
+                           global_x_max, global_y_max, global_z_max);
+    
+    art::ServiceHandle<phot::PhotonVisibilityService const> pvs;
+    auto lower_pt = pvs->GetRegionLowerCorner<geo::Point_t>();
+    auto upper_pt = pvs->GetRegionUpperCorner<geo::Point_t>();
+    _photon_bbox = geoalgo::AABox(lower_pt[0],lower_pt[1],lower_pt[2],upper_pt[0],upper_pt[1],upper_pt[2]);
   }
 
   float DetectorSpecs::GetVisibility(double x, double y, double z, unsigned int opch) const {

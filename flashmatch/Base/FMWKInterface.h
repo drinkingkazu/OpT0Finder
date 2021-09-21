@@ -10,8 +10,10 @@
 
 #if USING_LARSOFT == 0
 #include "FMWKTools/ConfigManager.h"
-#include "flashmatch/GeoAlgo/GeoAABox.h"
 #include "FMWKTools/PhotonVoxels.h"
+#include "flashmatch/GeoAlgo/GeoAABox.h"
+#include "flashmatch/Base/FMWKTools/PSetUtils.h"
+#include "flashmatch/Base/FMWKTools/PhotonVisibilityService.h"
 namespace flashmatch {
   /// Configuration object
   using Config_t = flashmatch::PSet;
@@ -44,6 +46,9 @@ namespace flashmatch {
       if(!_me) _me = new DetectorSpecs(filename);
       return *_me;
     }
+
+    /// Info dump
+    void DumpInfo() const;
 
     /// PMT XYZ position filler
     inline const geoalgo::Point_t& PMTPosition(size_t opch) { return _pmt_v.at(opch); }
@@ -84,6 +89,7 @@ namespace flashmatch {
     const std::vector<float>& GetLibraryEntries(int vox_id) const;
     #else
     phot::IPhotonLibrary::Counts_t GetLibraryEntries(int vox_id, bool reflWanted=false) const;
+    void EnableCryostats(std::vector<int> cryo_id_v);
     #endif
     
     /// Voxel definition
@@ -97,6 +103,7 @@ namespace flashmatch {
     double _drift_velocity;
     double _light_yield;
     double _MIPdEdx;
+    std::vector<int> _cryo_id_v;
   };
 
 }
