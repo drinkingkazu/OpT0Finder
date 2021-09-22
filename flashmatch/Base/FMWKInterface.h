@@ -41,6 +41,14 @@ namespace flashmatch {
     DetectorSpecs(const Config_t& cfg);
     ~DetectorSpecs(){}
 
+    inline static DetectorSpecs& GetME()
+    {
+      if(_me) return *_me;
+      std::cerr << "DetectorSpecs::GetME() without an argument must be called only after it is called with Config_t argument!" 
+		<< std::endl << std::endl << std::flush;
+      throw OpT0FinderException();
+    }
+
     inline static DetectorSpecs& GetME(const Config_t& cfg) 
     {
       if(!_me) _me = new DetectorSpecs(cfg);

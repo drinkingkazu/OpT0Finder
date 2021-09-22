@@ -113,8 +113,8 @@ namespace flashmatch {
   }
 
   void QLLMatch::Match(const QCluster_t &pt_v, const Flash_t &flash, FlashMatch_t& match) {
-    FLASH_INFO() << "Starting a match..." ;
-    FLASH_INFO() << "MC info: tpc true time " << pt_v.time_true 
+    FLASH_INFO() << "Starting a match..."
+    << "MC info: tpc true time " << pt_v.time_true 
     << " Flash true time " << flash.time_true << std::endl;    
     //
     // Prepare TPC
