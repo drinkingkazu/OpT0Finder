@@ -1,3 +1,6 @@
+from flashmatch import flashmatch 
+flashmatch.DetectorSpecs.GetME("detector_specs.cfg")
+
 from flashmatch import flashmatch,AnalysisManager
 import numpy as np
 

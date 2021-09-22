@@ -96,7 +96,7 @@ namespace flashmatch {
     /// Photon Library data access
     const std::vector<float>& GetLibraryEntries(int vox_id) const;
     /// For non-larsoft option, configure via filename
-    inline static DetectorSpecs& GetME(std::string filename="detector_specs.cfg")
+    inline static DetectorSpecs& GetME(std::string filename)
     {
       assert(!filename.empty());
       if(filename.find("/") != 0)
