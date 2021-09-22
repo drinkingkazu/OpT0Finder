@@ -137,7 +137,7 @@ namespace flashmatch {
     double min_x_true; ///< True x-minimum value
 
     /// Default constructor
-    QCluster_t() : idx(kINVALID_ID), time(0), time_true(kINVALID_DOUBLE) {}
+    QCluster_t() : idx(kINVALID_ID), time(0), time_true(kINVALID_DOUBLE), min_x_true(kINVALID_DOUBLE) {}
     ~QCluster_t() {}
 
     /// returns the sum of "q" from QPoint_t

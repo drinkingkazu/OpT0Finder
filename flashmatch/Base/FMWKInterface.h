@@ -89,7 +89,7 @@ namespace flashmatch {
     const std::vector<float>& GetLibraryEntries(int vox_id) const;
     #else
     phot::IPhotonLibrary::Counts_t GetLibraryEntries(int vox_id, bool reflWanted=false) const;
-    void EnableCryostats(std::vector<int> cryo_id_v);
+    void EnableCryostats(std::vector<size_t> cryo_id_v);
     #endif
     
     /// Voxel definition

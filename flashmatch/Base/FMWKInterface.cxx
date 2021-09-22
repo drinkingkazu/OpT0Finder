@@ -163,7 +163,7 @@ namespace flashmatch{
       }
 
 
-      for (size_t tpc = 0; tpc < cryo_geo.NTPC(); tpc++) {
+      for (size_t tpc_id = 0; tpc_id < cryo_geo.NTPC(); tpc_id++) {
         auto const& tpc_geo = cryo_geo.TPC(tpc_id);
         double x_min = tpc_geo.GetCenter().X() - tpc_geo.HalfWidth();
         double x_max = tpc_geo.GetCenter().X() + tpc_geo.HalfWidth();
@@ -181,7 +181,7 @@ namespace flashmatch{
         if (z_min < global_z_min) global_z_min = z_min;
         if (z_max > global_z_max) global_z_max = z_max;
 
-        auto pair = std::pair<int,int>(tpc, cryo);
+        auto pair = std::pair<int,int>(tpc_id, cryo_id);
         _bbox_map[pair] = geoalgo::AABox(x_min, y_min, z_min, x_max, y_max, z_max);
       }
     }
@@ -190,9 +190,9 @@ namespace flashmatch{
                            global_x_max, global_y_max, global_z_max);
     
     art::ServiceHandle<phot::PhotonVisibilityService const> pvs;
-    auto lower_pt = pvs->GetRegionLowerCorner<geo::Point_t>();
-    auto upper_pt = pvs->GetRegionUpperCorner<geo::Point_t>();
-    _photon_bbox = geoalgo::AABox(lower_pt[0],lower_pt[1],lower_pt[2],upper_pt[0],upper_pt[1],upper_pt[2]);
+    auto lower_pt = this->GetVoxelDef().GetRegionLowerCorner<geo::Point_t>();
+    auto upper_pt = this->GetVoxelDef().GetRegionUpperCorner<geo::Point_t>();
+    _photon_bbox = geoalgo::AABox(lower_pt.X(),lower_pt.Y(),lower_pt.Z(),upper_pt.X(),upper_pt.Y(),upper_pt.Z());
   }
 
   float DetectorSpecs::GetVisibility(double x, double y, double z, unsigned int opch) const {
