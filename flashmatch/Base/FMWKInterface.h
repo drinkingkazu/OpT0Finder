@@ -104,7 +104,7 @@ namespace flashmatch {
     /// Photon Library data access
     phot::IPhotonLibrary::Counts_t GetLibraryEntries(int vox_id, bool reflWanted=false) const;
     /// Set which cryostats to use
-    void EnableCryostats(std::vector<int> cryo_id_v);
+    void EnableCryostats(std::vector<size_t> cryo_id_v);
     #endif
     
     /// Voxel definition
