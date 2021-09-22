@@ -61,6 +61,7 @@ namespace flashmatch {
   void QCluster_t::drop(double x_min, double x_max)
   {
     QCluster_t another;
+    another.idx = this->idx;
     another.time = this->time;
     another.time_true = this->time_true;
     another.min_x_true = this->min_x_true;
@@ -76,6 +77,7 @@ namespace flashmatch {
   void QCluster_t::drop(double x_min, double y_min, double z_min,
                         double x_max, double y_max, double z_max) {
     QCluster_t another;
+    another.idx = this->idx;
     another.time = this->time;
     another.time_true = this->time_true;
     another.min_x_true = this->min_x_true;
