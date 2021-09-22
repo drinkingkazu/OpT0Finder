@@ -38,12 +38,12 @@ namespace flashmatch {
   class DetectorSpecs : public LoggerFeature {
 
   public:
-    DetectorSpecs(std::string filename="specs.cfg");
+    DetectorSpecs(const Config_t& cfg);
     ~DetectorSpecs(){}
 
-    inline static DetectorSpecs& GetME(std::string filename="detector_specs.cfg")
+    inline static DetectorSpecs& GetME(const Config_t& cfg) 
     {
-      if(!_me) _me = new DetectorSpecs(filename);
+      if(!_me) _me = new DetectorSpecs(cfg);
       return *_me;
     }
 
@@ -87,8 +87,23 @@ namespace flashmatch {
     #if USING_LARSOFT == 0
     /// Photon Library data access
     const std::vector<float>& GetLibraryEntries(int vox_id) const;
+    /// For non-larsoft option, configure via filename
+    inline static DetectorSpecs& GetME(std::string filename="detector_specs.cfg")
+    {
+      assert(!filename.empty());
+      if(filename.find("/") != 0)
+        filename = std::string(getenv("FMATCH_DATADIR")) + "/" + filename;
+
+      auto cfg = CreatePSetFromFile(filename,"cfg");
+      auto const& p = cfg.get<::flashmatch::Config_t>("DetectorSpecs");
+
+      if(!_me) _me = new DetectorSpecs(p);
+      return *_me;
+    }
     #else
+    /// Photon Library data access
     phot::IPhotonLibrary::Counts_t GetLibraryEntries(int vox_id, bool reflWanted=false) const;
+    /// Set which cryostats to use
     void EnableCryostats(std::vector<int> cryo_id_v);
     #endif
     

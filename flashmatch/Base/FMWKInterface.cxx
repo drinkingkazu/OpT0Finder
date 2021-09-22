@@ -26,15 +26,9 @@ namespace flashmatch{
 #if USING_LARSOFT == 0
 namespace flashmatch{
 
-  DetectorSpecs::DetectorSpecs(std::string filename) 
+  DetectorSpecs::DetectorSpecs(const Config_t& p) 
     : LoggerFeature("DetectorSpecs")
   {
-    assert(!filename.empty());
-    if(filename.find("/") != 0)
-      filename = std::string(getenv("FMATCH_DATADIR")) + "/" + filename;
-
-    auto cfg = CreatePSetFromFile(filename,"cfg");
-    auto const& p = cfg.get<::flashmatch::Config_t>("DetectorSpecs");
 
     auto max_pt = p.get<std::vector<double> >("ActiveVolumeMax");
     auto min_pt = p.get<std::vector<double> >("ActiveVolumeMin");
@@ -123,12 +117,17 @@ namespace flashmatch{
 #else
 
 namespace flashmatch{
-  DetectorSpecs::DetectorSpecs(std::string filename){
+  DetectorSpecs::DetectorSpecs(const Config_t& p){
     auto const clock_data = ::art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
     auto const det_prop = ::art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob(clock_data);
-
     _drift_velocity = det_prop.DriftVelocity();
-
+    if(_drift_velocity != p.get<double>("DriftVelocity",_drift_velocity)) {
+      FLASH_CRITICAL() << "Drift velocity is set in the config as " 
+      << p.get<double>("DriftVelocity") << " but disagrees with larsoft " << _drift_velocity << std::endl;
+      throw OpT0FinderException();
+    }
+    _light_yield = p.get<double>("LightYield");
+    _MIPdEdx = p.get<double>("MIPdEdx");
     std::vector<size_t> cryo_id_v;
     this->EnableCryostats(cryo_id_v);
   }
