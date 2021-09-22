@@ -316,7 +316,20 @@ namespace flashmatch {
     // We have a score-ordered list of match information at this point.
 
     result = _alg_match_select->Select(match_result);
- 
+
+    for(size_t idx=0; idx < result.size(); ++idx) {
+      auto const& match = result[idx];
+      auto const& tpc   = _tpc_object_v[match.tpc_id];
+      auto const& flash = _flash_v[match.flash_id];
+
+      FLASH_INFO() << "Match " << idx << " ... TPC " << match.tpc_id << " with PMT " << match.flash_id << std::endl
+      << "  Match score       : " << match.score << " touch? " << match.touch_match << " (" << match.touch_score << ")" << std::endl 
+      << "  X position        : true " << tpc.min_x_true << " hypo " << match.tpc_point.x << " touch " << match.touch_point.x << std::endl
+      << "  Time              : true " << tpc.time_true << " flash " << flash.time << std::endl
+      << "  PEs               : true " << flash.TotalTruePE() << " hypo " << std::accumulate(match.hypothesis.begin(),match.hypothesis.end(),0.) << " flash " << flash.TotalPE() << std::endl
+      << std::endl;
+    }
+
     // Return result
     return result;
 
