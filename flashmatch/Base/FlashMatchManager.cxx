@@ -117,6 +117,10 @@ namespace flashmatch {
     }
 
     _configured = true;
+
+    if(this->logger().level() == flashmatch::msg::kINFO)
+      this->PrintConfig();
+
   }
 
   BaseAlgorithm* FlashMatchManager::GetAlgo(flashmatch::Algorithm_t type)
