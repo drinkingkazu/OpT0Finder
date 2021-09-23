@@ -118,8 +118,7 @@ namespace flashmatch {
 
     _configured = true;
 
-    if(this->logger().level() == flashmatch::msg::kINFO)
-      this->PrintConfig();
+    this->PrintConfig();
 
   }
 
