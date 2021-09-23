@@ -246,6 +246,25 @@ namespace flashmatch {
     // Flash matching stage
     //
 
+    // Report what's put into matching
+    if(this->logger().level() == flashmatch::msg::kINFO) {
+      for(size_t idx=0; idx<tpc_index_v.size(); ++idx) {
+        auto const& tpc_index = tpc_index_v[idx];
+        auto const& qcluster = _tpc_object_v[tpc_index];
+        FLASH_INFO() << "Input QCluster " << idx << " (ID=" << tpc_index << ") ... "
+        << qcluster.size() << " pts ... point qsum " << qcluster.sum()
+        << " ... X span " << qcluster.min_x() << " => " << qcluster.max_x() << std::endl << std::endl; 
+      }
+
+      for(size_t idx=0; idx<flash_index_v.size(); ++idx) {
+        auto const& flash_index = flash_index_v[idx];
+        auto const& flash = _flash_v[flash_index];
+        FLASH_INFO() << "Input Flash " << idx << " (ID=" << flash_index << ") ... "
+        << "Reco " << flash.time << " [us] " << flash.TotalPE() << " p.e. "
+        << "... True " << flash.time_true << " [us] " << flash.TotalTruePE() << " p.e. " << std::endl << std::endl;
+      }
+    }
+
     // use multi-map for possible equally-scored matches
     std::vector<std::vector<FlashMatch_t> > match_result;
     match_result.resize(tpc_index_v.size());
